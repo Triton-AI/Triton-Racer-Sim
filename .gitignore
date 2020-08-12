@@ -127,3 +127,6 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+.vscode/
+TritonRacerSim/car_templates/data
