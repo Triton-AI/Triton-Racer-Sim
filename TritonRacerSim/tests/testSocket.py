@@ -2,7 +2,7 @@ import socket
 import json
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server_address = ('localhost', 9091)
+server_address = ('127.0.0.1', 9091)
 sock.connect(server_address)
 
 #msg = b'{"msg_type" : "ping"}\n'

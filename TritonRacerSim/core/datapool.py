@@ -6,10 +6,10 @@ class DataPool:
 
     def add(self, component=Component()):
         for data_name in component.step_inputs:
-            self.pool[data_name] = 0.0
+            self.pool[data_name] = None
 
         for data_name in component.step_outputs:
-            self.pool[data_name] = 0.0
+            self.pool[data_name] = None
 
     def get_inputs_for(self, component=Component()):
         inputs = [self.pool[data_name] for data_name in component.step_inputs]

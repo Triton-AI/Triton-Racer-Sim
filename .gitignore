@@ -130,3 +130,4 @@ dmypy.json
 
 .vscode/
 TritonRacerSim/car_templates/data
+TritonRacerSim/car_templates/models

@@ -1,4 +1,5 @@
 from TritonRacerSim.core.datapool import DataPool
+from TritonRacerSim.core.profiler import Profiler
 from TritonRacerSim.components.component import Component
 from threading import Thread
 import time
@@ -9,6 +10,7 @@ class Car:
         self.components = []
         self.component_threads = []
         self.loop_hz = loop_hz
+        self.profiler = Profiler()
 
     def addComponent(self, component=Component()):
         assert issubclass(type(component), Component)
@@ -40,14 +42,22 @@ class Car:
                 begin_time = time.time()
                 for component in self.components:
                     args = self.pool.get_inputs_for(component)
+                    # print (f'{component.getName()} input: {args}')
+
+                    self.profiler.watch(component)
                     returns = component.step(*args)
+                    self.profiler.stop_watch(component)
+
                     self.pool.store_outputs_for(component, returns)
+                    # print (f'{component.getName()} output: {returns}')
                 duration = time.time() - begin_time
 
                 if duration > loop_time:
-                    if not compromised:
-                        compromised = True
-                        print(f'Loop frequency compromised! Actual time: {duration * 1000} ms')
+                    
+                    compromised = True
+                    print(f'Loop frequency compromised! Actual time: {duration * 1000} ms')
+                    print('[Part Performances]')
+                    self.profiler.dump()
                 else:
                     time_left = loop_time - duration
                     time.sleep(time_left)
