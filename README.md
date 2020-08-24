@@ -12,8 +12,9 @@ Issue with model loss. Please use donkeycar to train for performance.
 2. `conda create -name tritonracer python=3.8`
 3. `conda activate tritonracer`
 4. Ubuntu 20.04: `pip install pygame==2.0.0.dev10` | Others: `pip install pygame`
-5. `pip install docopt, tensorflow, pillow, keras`
-6. Setup [donkey gym](http://docs.donkeycar.com/guide/simulator/#install) in this environment (omit `conda activate donkey`)
+5. `pip install docopt tensorflow pillow keras`
+6. `conda install scikit-learn`
+7. Setup [donkey gym](http://docs.donkeycar.com/guide/simulator/#install) in this environment (omit `conda activate donkey`)
 
 
 ### Drive the Car
