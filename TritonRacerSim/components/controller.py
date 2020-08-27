@@ -147,7 +147,7 @@ class G28DrivingWheel(PygameJoystick):
 
 
 
-class PS4(PygameJoystick):
+class PS4Joystick(PygameJoystick):
     def __init__(self):
         PygameJoystick.__init__(self, 'ps4')
 

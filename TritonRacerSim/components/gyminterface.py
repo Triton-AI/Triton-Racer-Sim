@@ -17,6 +17,7 @@ DEFAULT_GYM_CONFIG = {
     'racer_name': 'Triton Racer',
     'bio' : 'Triton-AI',
     'country' : 'US',
+    "guid": "comeondowntosouthparkandmeetsomefriendsofmine",
 
     'body_style' : 'car01', 
     'body_r' : 24, 
@@ -38,8 +39,8 @@ DEFAULT_GYM_CONFIG = {
     "rot_x" : 0.0,
 
     'scene_name': 'mountain_track',
-    'sim_path': 'remote',
     'sim_host': '127.0.0.1',
+    # 'sim_host':'donkey-sim.roboticist.dev',
     'sim_port': 9091,
     'sim_latency': 0
 }
@@ -47,12 +48,13 @@ DEFAULT_GYM_CONFIG = {
 class GymInterface(Component, SDClient):
     '''Talking to the donkey gym'''
     def __init__(self, poll_socket_sleep_time=0.01, gym_config = DEFAULT_GYM_CONFIG):
+        self.gym_config = DEFAULT_GYM_CONFIG
+        self.gym_config.update(gym_config)
         Component.__init__(self, inputs=['mux/steering', 'mux/throttle', 'mux/breaking', 'usr/reset'], outputs=['cam/img', 'gym/x', 'gym/y', 'gym/z', 'gym/speed', 'gym/cte'], threaded=False)
-        SDClient.__init__(self, gym_config['sim_host'], gym_config['sim_port'], poll_socket_sleep_time=poll_socket_sleep_time)
-        self.load_scene(gym_config['scene_name'])
+        SDClient.__init__(self, self.gym_config['sim_host'], self.gym_config['sim_port'], poll_socket_sleep_time=poll_socket_sleep_time)
+        self.load_scene(self.gym_config['scene_name'])
         self.last_image = None
         self.car_loaded = False
-        self.gym_config = gym_config
 
         self.pos_x = 0.0
         self.pos_y = 0.0
@@ -109,10 +111,11 @@ class GymInterface(Component, SDClient):
             'racer_name': self.gym_config['racer_name'],
             'car_name' : self.gym_config['car_name'],
             'bio' : self.gym_config['bio'],
-            'country' : self.gym_config['country'] }
+            'country' : self.gym_config['country'],
+            'guid': self.gym_config['guid'] }
         self.send_now(json.dumps(msg))
 
-        
+        time.sleep(1.0)
         # Car config
         msg = { "msg_type" : "car_config", 
         "body_style" : self.gym_config['body_style'], 
@@ -124,7 +127,7 @@ class GymInterface(Component, SDClient):
         self.send_now(json.dumps(msg))
 
         #this sleep gives the car time to spawn. Once it's spawned, it's ready for the camera config.
-        time.sleep(0.1)
+        time.sleep(1.0)
         '''
         # Camera config     
         msg = { "msg_type" : "cam_config", 
