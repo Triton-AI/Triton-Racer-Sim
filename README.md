@@ -3,7 +3,7 @@ An autonomous robocar simulation client, designed to work with donkey gym
 
 ## Progress
 Driving and training pipeline is up and running.
-Issue with model loss. Please use donkeycar to train for performance.
+Config added. Use `python manage.py generateconfig` to create one.
 
 ## How to Use
 
