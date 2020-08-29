@@ -37,6 +37,10 @@ class DataStorage(Component):
     def onShutdown(self):
         """Shutdown"""
         self.on = False
+        if not len(os.listdir(self.storage_path)): # Delete the data folder if there is no data collected
+            os.rmdir(self.storage_path)
+            print(f'{self.storage_path} has been deleted since no data was recorded in this session')
+
 
     def getName(self):
         return 'Data Storage'

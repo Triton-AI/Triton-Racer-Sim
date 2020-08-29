@@ -17,9 +17,15 @@ class DataPool:
         return inputs
 
     def store_outputs_for(self, component=Component(), output_values=None):
-        if output_values is not None:
-            for i in range(len(component.step_outputs)):
-                self.pool[component.step_outputs[i]] = output_values[i]
+        current_idx = 0
+        try:
+            if output_values is not None:
+                for i in range(len(component.step_outputs)):
+                    current_idx = i
+                    self.pool[component.step_outputs[i]] = output_values[i]
+        except:
+            print(f'Datapoll: error associated with {component.getName()} on storing output {current_idx + 1}')
+            raise Exception()
 
     def get_value(self, name):
         return self.pool[name]

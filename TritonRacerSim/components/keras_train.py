@@ -206,7 +206,7 @@ class Keras_2D_FULL_HOUSE(Component):
 
 
 
-        feature_inputs = Input(shape=(2,), name='feature_vec_input')
+        feature_inputs = Input(shape=(1,), name='feature_vec_input')
         y = Dense(8, activation='relu', name='feature1')(feature_inputs)
         y = Dense(16, activation='relu', name='feature2')(y)
         y = Dense(32, activation='relu', name='feature3')(y)
@@ -290,7 +290,7 @@ class FullHouseDataLoader(DataLoader):
     
     def get_features_from_record(self,record={}):
         '''Any additional features are we looking for?'''
-        return np.asarray((record['gym/speed'] / 20, record['gym/cte'], record['loc/segment']))
+        return np.asarray((record['gym/speed'] / 20, record['loc/segment']))
     
     def get_labels_from_record(self, record={}):
         return np.asarray((record['mux/steering'], record['gym/speed'] / 20))
@@ -345,14 +345,14 @@ class FullHouseDataLoader(DataLoader):
         
         for data in train_set:
             train_examples.append(data[0])
-            train_example_vecs.append(np.asarray((data[1][1], data[1][2])))
+            train_example_vecs.append(np.asarray(data[1][1]))
             train_example_spds.append(np.asarray(data[1][0]))
             train_labels.append(data[2])
 
         for data in val_set:
             val_examples.append(data[0])
             val_example_spds.append(np.asarray(data[1][0]))
-            val_example_vecs.append(np.asarray((data[1][1], data[1][2])))
+            val_example_vecs.append(np.asarray(data[1][1]))
             val_labels.append(data[2])
 
         train_examples = np.stack(train_examples, axis=0)
@@ -369,13 +369,16 @@ class FullHouseDataLoader(DataLoader):
         self.val_dataset = tf.data.Dataset.from_tensors(((val_examples,val_example_spds, val_example_vecs), val_labels)) 
 
 
-def train(model_type, img_shape, data_paths, model_path):
-    physical_devices = tf.config.list_physical_devices('GPU')
-    tf.config.experimental.set_memory_growth(physical_devices[0], True)
+
+def train(cfg, data_paths, model_path, transfer_path=None):
+    #physical_devices = tf.config.list_physical_devices('GPU')
+    #tf.config.experimental.set_memory_growth(physical_devices[0], True)
 
     loader = None
     model = None
-    input_shape = img_shape
+
+    model_type = ModelType(cfg['model_type'])
+    input_shape = (cfg['cam_h'], cfg['cam_w'], 3)
 
     if model_type == ModelType.CNN_2D:
         loader = DataLoader(*data_paths)
@@ -389,13 +392,23 @@ def train(model_type, img_shape, data_paths, model_path):
     elif model_type == ModelType.CNN_2D_FULL_HOUSE:
         loader = FullHouseDataLoader(*data_paths)
         model = Keras_2D_FULL_HOUSE.get_model(input_shape=input_shape)
-        
+
+    if transfer_path is not None:
+        model = load_model(transfer_path)
     loader.load()
     model.summary()
     model.compile(optimizer=optimizers.Adam(lr=0.001), loss='mse')
-    model.fit(loader.train_dataset_batch, epochs=100, validation_data=loader.val_dataset_batch)
-    print(f'Finished training. Saving model to {model_path}.')
-    model.save(model_path)
+
+    callbacks = [
+        tf.keras.callbacks.ModelCheckpoint(filepath=model_path, save_best_only=True, monitor='val_loss', mode='auto', verbose=1, save_freq='epoch')
+    ]
+
+    if cfg['early_stop']:
+        callbacks.append(tf.keras.callbacks.EarlyStopping(patience=cfg['early_stop_patience']))
+
+    model.fit(loader.train_dataset_batch, epochs=cfg['max_epoch'], validation_data=loader.val_dataset_batch, callbacks=callbacks)
+    print(f'Finished training. Best model saved to {model_path}.')
+    # model.save(model_path)
 
  
 

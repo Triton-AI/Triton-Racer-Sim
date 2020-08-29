@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 class KerasPilot(Component):
     def __init__(self, model_path, model_type):
         inputs = ['cam/img', 'gym/speed', 'loc/segment', 'gym/cte', 'usr/mode']
-        outputs = ['ai/steering', 'ai/throttle']
+        outputs = ['ai/steering', 'ai/throttle', 'ai/breaking']
         self.model_type = model_type
         if model_type == ModelType.CNN_2D:
             pass
@@ -35,7 +35,7 @@ class KerasPilot(Component):
     
     def step(self, *args):
         if args[0] is None:
-            return 0.0, 0.0
+            return 0.0, 0.0, 0.0
         if  args[-1] == DriveMode.AI_STEERING or args[-1] == DriveMode.AI:
             img_arr = np.asarray(args[0],dtype=np.float32)
             img_arr /= 255
@@ -49,25 +49,27 @@ class KerasPilot(Component):
                 # start_time = time.time()
                 steering_and_throttle = self.model(img_arr)
                 # print(f'Prediction time: {time.time() - start_time}')
-                toreturn = steering_and_throttle.numpy()[0][0], steering_and_throttle.numpy()[0][1]
+                toreturn = steering_and_throttle.numpy()[0][0], steering_and_throttle.numpy()[0][1], 0.0
                 # print(f'{toreturn}\r', end = '')
                 return toreturn
             elif self.model_type == ModelType.CNN_2D_SPD_FTR:
                 spd = np.asarray((args[1] / 20,), dtype=np.float32)
                 spd = spd.reshape((1,) + spd.shape) 
                 steering_and_throttle = self.model((img_arr, spd))
-                toreturn = steering_and_throttle.numpy()[0][0], steering_and_throttle.numpy()[0][1]
+                toreturn = steering_and_throttle.numpy()[0][0], steering_and_throttle.numpy()[0][1], 0.0
                 # print(f'{toreturn}\r', end = '')
                 return toreturn
             elif self.model_type == ModelType.CNN_2D_SPD_CTL:
                 steering_and_speed = self.model(img_arr)
                 steering = steering_and_speed.numpy()[0][0]
                 speed = steering_and_speed.numpy()[0][1] * 20
-                if (speed * 1.0 > args[1]): # Accelerate to match the predicted speed
+                breaking = 0.0
+                if (speed * 1.1 > args[1]): # Accelerate to match the predicted speed
                     throttle = 1.0
                 else:
                     throttle = 0.0 # Decelerate to match the predicted speed
-                toreturn = steering, throttle
+                    breaking = 0.0
+                toreturn = steering * 1, throttle, breaking
                 # print(f'{toreturn}\r', end = '')
                 return toreturn
             elif self.model_type == ModelType.CNN_2D_FULL_HOUSE:
@@ -79,14 +81,16 @@ class KerasPilot(Component):
                 steering_and_speed = self.model((img_arr, spd, features))
                 steering = steering_and_speed.numpy()[0][0]
                 speed = steering_and_speed.numpy()[0][1] * 20
-                if (speed * 1.1 > args[1]): # Accelerate to match the predicted speed
+                breaking = 0.0
+                if (speed * 1.2 > args[1]): # Accelerate to match the predicted speed
                     throttle = 1.0
                 else:
                     throttle = 0.0 # Decelerate to match the predicted speed
-                toreturn = steering, throttle
+                    breaking = 0.0
+                toreturn = steering, throttle, breaking
                 # print(f'{toreturn}\r', end = '')
                 return toreturn
-        return 0.0, 0.0
+        return 0.0, 0.0, 0.0
 
     def onShutdown(self):
         self.on = False

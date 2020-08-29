@@ -91,4 +91,7 @@ if __name__ == '__main__':
             # assert path.exists(model_path)
 
             from TritonRacerSim.components.keras_train import train
-            train(model_type=ModelType(cfg['model_type']), img_shape = (cfg['cam_h'], cfg['cam_w'], 3), data_paths=data_paths, model_path=model_path)
+            transfer_path=None
+            if (args['--transfer']):
+                transfer_path = args['--transfer']
+            train(cfg, data_paths, model_path, transfer_path)

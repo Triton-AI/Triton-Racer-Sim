@@ -91,7 +91,7 @@ class GymInterface(Component, SDClient):
             self.car_loaded = True
         
         elif json_packet['msg_type'] == "telemetry":
-            time.sleep(self.gym_config['sim_latency']/ 1000.0 / 2.0) # 1000 for ms -> s, 2 for calculating single-way ping
+            time.sleep(self.gym_config['sim_latency'] / 1000.0) # 1000 for ms -> s
             imgString = json_packet["image"]
             image = Image.open(BytesIO(base64.b64decode(imgString)))
             self.last_image = np.asarray(image, dtype=np.uint8)

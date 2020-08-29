@@ -1,10 +1,7 @@
 import json
+import uuid
 config = {
-    'explanation': '''
-    model_type: cnn_2d | cnn_2d_speed_as_feature | cnn_2d_speed_control | cnn_2d_full_house
-    joystick_type: ps4 | xbox | g28
-    sim_host: use 127.0.0.1 for local
-    track_data_file: used for position tracker to segment the track
+    'explanation': '''model_type: cnn_2d | cnn_2d_speed_as_feature | cnn_2d_speed_control | cnn_2d_full_house; joystick_type: ps4 | xbox | g28; sim_host: use 127.0.0.1 for local; track_data_file: used for position tracker to segment the track
     ''',
 
     'cam_w': 160,
@@ -21,6 +18,9 @@ config = {
     'ai_launch_lock_steering_duration': 3,
 
     'model_type': '2d_cnn',
+    'early_stop': True,
+    'early_stop_patience': 5,
+    'max_epoch': 100,
 
     'car_name': 'TritonRacer',
     'font_size': 50,
@@ -29,7 +29,7 @@ config = {
     'country': 'US',
     'body_style': 'car01',
     'body_rgb': (24, 43, 73),
-    'guid': 'comeondowntosouthparkandmeetsomefriendsofmine',
+    'guid': 'will_be_overwritten_when_generating_config',
 
     'scene_name': 'mountain_track',
     'sim_path': 'remote',
@@ -37,7 +37,7 @@ config = {
     'sim_port': 9091,
     'sim_latency': 0,
     
-    'use_location_tracker': True,
+    'use_location_tracker': False,
     'track_data_file': 'centerline.json'
 }
 
@@ -47,5 +47,6 @@ def read_config(config_path):
     return cfg
 
 def generate_config(config_path):
+    config['guid'] = uuid.uuid1()
     with open(config_path, 'w') as config_file:
         json.dump(config, config_file, indent=4)
