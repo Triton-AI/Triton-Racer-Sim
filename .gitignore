@@ -133,4 +133,6 @@ TritonRacerSim/car_templates/data/records_*/
 TritonRacerSim/car_templates/models/*.h5
 TritonRacerSim/car_templates/models/old/
 TritonRacerSim/car_templates/data/old/
+
+TritonRacerSim/car_templates/myconfig.txt
 TritonRacerSim/car_templates/myconfig.json
