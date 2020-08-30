@@ -84,10 +84,10 @@ GPU usage (120 * 160 image, 128 batch size): 3GB
 
 #### Model Types
 
-* cnn_2d: Take an image and predict throttle and steering;
-* cnn_2d_speed_as_feature: Take an image and current speed, and predict throttle and steering
-* cnn_2d_speed_control: Take an image and predict speed and steering;
-* cnn_2d_full_house: Take an image, segment of track, and current speed, and predict speed and steering. (Speed prediction is unrelated to current speed)
+* `cnn_2d`: Take an image and predict throttle and steering;
+* `cnn_2d_speed_as_feature`: Take an image and current speed, and predict throttle and steering
+* `cnn_2d_speed_control`: Take an image and predict speed and steering;
+* `cnn_2d_full_house`: Take an image, segment of track, and current speed, and predict speed and steering. (Speed prediction is unrelated to current speed)
 
 ### Test the Model
 
