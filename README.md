@@ -53,7 +53,7 @@ Use a PS4 joystick:
 * Square: reset the car
 * Share: switch driving mode
 
-Use a XBOX joystick:
+Use an XBOX joystick:
 * Left X axis: steering
 * Right Y axis: throttle
 * Right Trigger: breaking
@@ -61,6 +61,10 @@ Use a XBOX joystick:
 * Y: delete 100 records
 * X: reset the car
 * Back (below XBOX icon on the left): switch driving mode 
+
+Use a G28 Driving Wheel (oof)
+* Steering, throttle and breaking are mapped to the corresponding equipment
+* The rest is the same as PS4
 
 Data recorded can be found in data/records_x/
 
