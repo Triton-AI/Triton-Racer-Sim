@@ -3,16 +3,8 @@ Scripts to drive a triton racer car
 
 Usage:
     manage.py (drive) [--model=<model>] [--js]
-    manage.py (train) (--tub=<tub1,tub2,..tubn>) (--model=<model>) [--transfer=<model>] [--type=(linear|categorical|rnn|imu|behavior|3d|localizer)]
+    manage.py (train) (--tub=<tub1,tub2,..tubn>) (--model=<model>) [--transfer=<model>]
     manage.py (generateconfig)
-
-Options:
-    -h --help               Show this screen.
-    --js                    Use physical joystick.
-    -f --file=<file>        A text file containing paths to tub files, one per line. Option may be used more than once.
-    --meta=<key:value>      Key/Value strings describing describing a piece of meta data about this drive. Option may be used more than once.
-    --myconfig=filename     Specify myconfig file to use. 
-                            [default: myconfig.py]
 """
 
 import sys
@@ -24,12 +16,14 @@ from TritonRacerSim.core.datapool import DataPool
 from TritonRacerSim.utils.types import ModelType
 
 def get_joystick_by_name(joystick_name):
-    from TritonRacerSim.components.controller import JoystickType, PygameJoystick, G28DrivingWheel, PS4Joystick
+    from TritonRacerSim.components.controller import JoystickType, G28DrivingWheel, PS4Joystick, XBOXJoystick
     joysitck_type = JoystickType(joystick_name)
     if joysitck_type == JoystickType.PS4:
         return PS4Joystick()
     elif joysitck_type == JoystickType.G28:
         return G28DrivingWheel()
+    elif joysitck_type == JoystickType.XBOX:
+        return XBOXJoystick()
     else:
         raise Exception(f'Unsupported joystick type: {joysitck_type}. Could be still under development.')
 

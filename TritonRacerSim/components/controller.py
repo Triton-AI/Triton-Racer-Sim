@@ -31,6 +31,7 @@ class Controller(Component):
 
 PS4_CONFIG={'steering_axis': 0, 'throttle_axis': 4, 'break_axis': 5, 'toggle_mode_but': 8, 'del_record_but': 2, 'toggle_record_but': 1, 'reset_but': 3, 'has_break': True}
 G28_CONFIG={'steering_axis':0, 'throttle_axis': 2, 'break_axis' : 3,  'toggle_mode_but': 8, 'del_record_but': 2, 'toggle_record_but': 1, 'reset_but': 3, 'has_break': True}
+XBOX_CONFIG={'steering_axis': 0, 'throttle_axis': 4, 'break_axis': 5, 'toggle_mode_but': 6, 'del_record_but': 3, 'toggle_record_but': 1, 'reset_but': 2, 'has_break': True}
 
 class PygameJoystick(Controller):
     def __init__(self, joystick_type):
@@ -50,6 +51,8 @@ class PygameJoystick(Controller):
             self.joystick_map = PS4_CONFIG
         elif JoystickType(joystick_type) == JoystickType.G28:
             self.joystick_map = G28_CONFIG
+        elif JoystickType(joystick_type) == JoystickType.XBOX:
+            self.joystick_map = XBOX_CONFIG
         else:
              raise Exception('Unsupported joystick')
 
@@ -163,3 +166,18 @@ class PS4Joystick(PygameJoystick):
             val = 0.0
         return val
 
+class XBOXJoystick(PygameJoystick):
+    def __init__(self):
+        PygameJoystick.__init__(self, 'xbox')
+
+    def map_steering(self, val):
+        return val
+
+    def map_throttle(self, val):
+        return val * -1
+
+    def map_break(self, val):
+        val = (val + 1) / 2
+        if val < 0.2:
+            val = 0.0
+        return val

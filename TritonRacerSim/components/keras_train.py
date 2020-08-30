@@ -396,7 +396,7 @@ def train(cfg, data_paths, model_path, transfer_path=None):
 
     if transfer_path is not None:
         model = load_model(transfer_path)
-    loader.load()
+    loader.load(batch_size=cfg['batch_size'])
     model.summary()
     model.compile(optimizer=optimizers.Adam(lr=0.001), loss='mse')
 

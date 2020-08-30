@@ -37,7 +37,7 @@ config = {
     'sim_port': 9091,
     'sim_latency': 0,
     
-    'use_location_tracker': False,
+    'use_location_tracker': True,
     'track_data_file': 'centerline.json'
 }
 
@@ -47,6 +47,6 @@ def read_config(config_path):
     return cfg
 
 def generate_config(config_path):
-    config['guid'] = uuid.uuid1()
+    config['guid'] = uuid.uuid1().__str__()
     with open(config_path, 'w') as config_file:
         json.dump(config, config_file, indent=4)
