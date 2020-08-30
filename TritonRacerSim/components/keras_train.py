@@ -371,8 +371,9 @@ class FullHouseDataLoader(DataLoader):
 
 
 def train(cfg, data_paths, model_path, transfer_path=None):
-    #physical_devices = tf.config.list_physical_devices('GPU')
-    #tf.config.experimental.set_memory_growth(physical_devices[0], True)
+    physical_devices = tf.config.list_physical_devices('GPU')
+    if physical_devices:
+        tf.config.experimental.set_memory_growth(physical_devices[0], True)
 
     loader = None
     model = None

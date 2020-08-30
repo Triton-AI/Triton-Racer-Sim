@@ -9,9 +9,6 @@ from TritonRacerSim.utils.types import ModelType
 import time
 import os
 import queue
-import cv2
-
-import matplotlib.pyplot as plt
 
 
 class KerasPilot(Component):
@@ -76,13 +73,13 @@ class KerasPilot(Component):
                 # print (args[1], args[2], args[3])
                 spd = np.asarray(args[1]/20, dtype=np.float32)
                 spd = spd.reshape((1,) + spd.shape)
-                features = np.asarray((args[2], args[3]), dtype=np.float32)
+                features = np.asarray((args[2],), dtype=np.float32)
                 features = features.reshape((1,) + features.shape)
                 steering_and_speed = self.model((img_arr, spd, features))
                 steering = steering_and_speed.numpy()[0][0]
                 speed = steering_and_speed.numpy()[0][1] * 20
                 breaking = 0.0
-                if (speed * 1.2 > args[1]): # Accelerate to match the predicted speed
+                if (speed * 1.1 > args[1]): # Accelerate to match the predicted speed
                     throttle = 1.0
                 else:
                     throttle = 0.0 # Decelerate to match the predicted speed

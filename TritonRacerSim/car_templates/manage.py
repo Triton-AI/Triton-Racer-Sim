@@ -16,7 +16,7 @@ Options:
 """
 
 import sys
-sys.path.append('/home/haoru/Projects/Triton-Racer/Triton-Racer-Sim/')
+sys.path.append('/home/haoru/Projects/Triton-Racer-Sim/')
 from docopt import docopt
 from os import path
 from TritonRacerSim.core.car import Car

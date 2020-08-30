@@ -9,7 +9,7 @@
     "ai_launch_lock_steering_enabled": true,
     "ai_launch_lock_steering_value": 0.0,
     "ai_launch_lock_steering_duration": 3.5,
-    "model_type": "cnn_2d_full_house",
+    "model_type": "cnn_2d_speed_control",
     "early_stop": true,
     "early_stop_patience": 5,
     "max_epoch": 100,
