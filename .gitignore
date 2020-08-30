@@ -129,5 +129,6 @@ dmypy.json
 .pyre/
 
 .vscode/
-TritonRacerSim/car_templates/data
-TritonRacerSim/car_templates/models
+TritonRacerSim/car_templates/data/records_*/
+TritonRacerSim/car_templates/models/*.h5
+TritonRacerSim/car_templates/models/old/
