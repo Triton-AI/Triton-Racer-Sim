@@ -1,8 +1,11 @@
 # Triton-Racer-Sim
-An autonomous robocar simulation client, designed to work with donkey gym
+An autonomous robocar simulation client, designed to work with [donkey gym](https://github.com/tawnkramer/gym-donkeycar).
+
+The project is inspired by, and has taken refernece from [donkeycar](https://www.donkeycar.com/).
 
 ## Progress
 Driving and training pipeline is up and running.
+
 Config added. Use `python manage.py generateconfig` to create one.
 
 ## Features
@@ -16,7 +19,7 @@ Config added. Use `python manage.py generateconfig` to create one.
 
 ## Install
 
-### Setup Environment
+### Set up Environment
 1. Install [miniconda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html)
 2. `conda create -name tritonracer python=3.8`
 3. `conda activate tritonracer`
@@ -40,9 +43,10 @@ At this stage the car lives in car_templates. `cd TritonRacerSim/car_templates/`
 `python manage.py generateconfig` will create a myconfig.json under the car_template. 
 
 ### Drive the Car
-At this stage the car lives in car_templates. `cd TritonRacerSim/car_templates/` for driving and training. Creation of car instances will be supported later.
 
 `python manage.py drive`
+
+**IMPORTANT: by default data collection is turned OFF**
 
 Use a PS4 joystick:
 * Left X axis: steering
@@ -68,8 +72,6 @@ Use a G28 Driving Wheel (oof)
 
 Data recorded can be found in data/records_x/
 
-**IMPORTANT: by default data collection is turned OFF**
-
 ### Train a Model
 
 If you have a GPU: install [CUDA support for tensorflow](https://www.tensorflow.org/install/gpu)
@@ -78,9 +80,9 @@ If you have a GPU: install [CUDA support for tensorflow](https://www.tensorflow.
 
 * `--tub`: path to the data folder
 * `--model`: where you would like to put your model
-* `--transfer`: which old model you would like to train upon
+* `--transfer`: (optional) which old model you would like to train upon
 
-System Recommandation: 8-16GB RAM; GPU preferred
+**IMPORTANT:** `--tub` param is mandatory.
 
 RAM usage (120 * 160 image, 7000 Records): 8GB
 
@@ -103,7 +105,7 @@ Switch between modes:
 * Human throttle + AI steering
 * Full AI control
 
-### Write Your Own Component
+### Migrate Component from Donkeycar, or Write Your Own
 How to write your custom component for tritonracer:
 
 1. Subclass the Component class `from TritonRacerSim.components.component import Component`.
@@ -112,3 +114,12 @@ How to write your custom component for tritonracer:
 4. Implement `thread_step(self)` if it is a component with its own thread of, for example, polling information from peripherals. thread_step is started before the car starts (equivalent to `update()` of donkeycar). Remember to put a loop, and some delay time inbetween, for the code to run periodically.
 5. (Optional) Implement other APIs `onStart(self)`, `onShutdown(self)`, `getName(self)`
 6. Add your component in manage.py's `assemble_car()`: `car.addComponent(my_component)`
+
+## Roadmap
+Features to come:
+1. 3D covolution networks
+2. Reinforcement learning
+3. Filtering
+4. Migration to real car
+5. Packaging the software
+6. Merging with donkeycar
