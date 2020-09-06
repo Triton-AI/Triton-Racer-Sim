@@ -21,6 +21,9 @@ config = {
     'early_stop': True,
     'early_stop_patience': 5,
     'max_epoch': 100,
+    'speed_control_threshold': 1.1,
+    'speed_control_reverse': 0.0,
+    'speed_control_break': 0.0,
 
     'car_name': 'TritonRacer',
     'font_size': 50,
@@ -39,6 +42,7 @@ config = {
     
     'use_location_tracker': True,
     'track_data_file': 'centerline.json'
+
 }
 
 def read_config(config_path):

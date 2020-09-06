@@ -49,7 +49,7 @@ class ControlMultiplexer(Component):
         if self.throttle_lock_enabled:
             print('[WARNING] Throttle Lock Activated')
             self.throttle_lock_active = True
-            t = Thread(target=self.__end_throttle_lock, daemon=True)
+            t = Thread(target=self.__end_throttle_lock, daemon=False)
             t.start()
 
     def __end_throttle_lock(self):
@@ -61,7 +61,7 @@ class ControlMultiplexer(Component):
         if self.steering_lock_enabled:
             self.steering_lock_active = True
             print('[WARNING] Steering Lock Activated')
-            t = Thread(target=self.__end_steering_lock, daemon=True)
+            t = Thread(target=self.__end_steering_lock, daemon=False)
             t.start()
 
     def __end_steering_lock(self):

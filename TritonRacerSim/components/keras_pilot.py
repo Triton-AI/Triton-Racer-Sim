@@ -12,7 +12,7 @@ import queue
 
 
 class KerasPilot(Component):
-    def __init__(self, model_path, model_type):
+    def __init__(self, cfg, model_path, model_type):
         inputs = ['cam/img', 'gym/speed', 'loc/segment', 'gym/cte', 'usr/mode']
         outputs = ['ai/steering', 'ai/throttle', 'ai/breaking']
         self.model_type = model_type
@@ -24,6 +24,10 @@ class KerasPilot(Component):
         self.model.summary()
         tf.keras.backend.set_learning_phase(0)
         self.on = True
+
+        self.speed_control_threshold = cfg['speed_control_threshold']
+        self.speed_control_reverse = cfg['speed_control_reverse']
+        self.speed_control_break = cfg['speed_control_break']
 
         # from threading import Thread
         # t = Thread(target=self.prediction_thread, daemon=False)
@@ -61,11 +65,11 @@ class KerasPilot(Component):
                 steering = steering_and_speed.numpy()[0][0]
                 speed = steering_and_speed.numpy()[0][1] * 20
                 breaking = 0.0
-                if (speed * 1.1 > args[1]): # Accelerate to match the predicted speed
+                if (speed * self.speed_control_threshold > args[1]): # Accelerate to match the predicted speed
                     throttle = 1.0
                 else:
-                    throttle = 0.0 # Decelerate to match the predicted speed
-                    breaking = 0.0
+                    throttle = self.speed_control_reverse # Decelerate to match the predicted speed
+                    breaking = self.speed_control_break
                 toreturn = steering * 1, throttle, breaking
                 # print(f'{toreturn}\r', end = '')
                 return toreturn
@@ -79,7 +83,7 @@ class KerasPilot(Component):
                 steering = steering_and_speed.numpy()[0][0]
                 speed = steering_and_speed.numpy()[0][1] * 20
                 breaking = 0.0
-                if (speed * 1.1 > args[1]): # Accelerate to match the predicted speed
+                if (speed * 1.15 > args[1]): # Accelerate to match the predicted speed
                     throttle = 1.0
                 else:
                     throttle = 0.0 # Decelerate to match the predicted speed
@@ -91,7 +95,7 @@ class KerasPilot(Component):
 
     def onShutdown(self):
         self.on = False
-
+            
     def getName(self):
         return 'Keras Pilot'
 

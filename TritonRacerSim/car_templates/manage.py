@@ -43,7 +43,7 @@ def assemble_car(cfg = {}, model_path = None):
 
     if model_path is not None:
         from TritonRacerSim.components.keras_pilot import KerasPilot
-        pilot = KerasPilot(model_path, ModelType(cfg['model_type']))
+        pilot = KerasPilot(cfg, model_path, ModelType(cfg['model_type']))
         car.addComponent(pilot)
 
     car.addComponent(joystick)
