@@ -32,12 +32,12 @@ Config added. Use `python manage.py generateconfig` to create one.
 
 ### Download TritonRacer Repo
 1. `git clone https://github.com/Triton-AI/Triton-Racer-Sim`
-2. `cd Triton-Racer-Sim/TritonRacerSim/car_templates/`
-3. **IMPORTANT:** Open manage.py and edit line 11 to be your path to the Triton-Racer-Sim repo in your system `sys.path.append('/home/haoru/Projects/Triton-Racer-Sim/')`
+2. Copy `Triton-Racer-Sim/TritonRacerSim/car_templates/` folder to somewhere outside the repository (and optionally rename it). This is your car folder, like "d3" of donkeycar.
+3. **IMPORTANT:** Go to your car folder, open manage.py and edit line 11 to be your path to the Triton-Racer-Sim repo in your system `sys.path.append('/home/haoru/Projects/Triton-Racer-Sim/')`
 
 ## Manual
 
-At this stage the car lives in car_templates. `cd TritonRacerSim/car_templates/` for driving and training. Creation of car instances will be supported later.
+Creation of car instances will be supported later.
 
 ### Config File
 `python manage.py generateconfig` will create a myconfig.json under the car_template. 
