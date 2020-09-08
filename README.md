@@ -21,7 +21,7 @@ Config added. Use `python manage.py generateconfig` to create one.
 
 ### Set up Environment
 1. Install [miniconda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html)
-2. `conda create -name tritonracer python=3.8`
+2. `conda create -n tritonracer python=3.8`
 3. `conda activate tritonracer`
 4. `pip install docopt tensorflow pillow keras pygame==2.0.0.dev10`
 5. `conda install scikit-learn`
