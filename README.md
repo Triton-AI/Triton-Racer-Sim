@@ -44,7 +44,9 @@ Creation of car instances will be supported later.
 
 ### Drive the Car
 
-`python manage.py drive`
+Create a config file, then enter
+
+    python manage.py drive
 
 **IMPORTANT: by default data collection is turned OFF**
 
