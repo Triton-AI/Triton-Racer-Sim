@@ -76,6 +76,11 @@ Data recorded can be found in data/records_x/
 
 If you have a GPU: install [CUDA support for tensorflow](https://www.tensorflow.org/install/gpu)
 
+Note: If you have CUDA installed, and tensorflow says `Could not load dynamic library 'libcublas.so.10'` and falls back to CPU during training, add these lines to your ~/.bashrc:
+
+    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda/extras/CUPTI/lib64
+    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda-10.2/lib64
+
 `python manage.py train --tub data/records_1 --model ./models/pilot.h5` 
 
 * `--tub`: path to the data folder
