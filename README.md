@@ -72,7 +72,7 @@ Use a G28 Driving Wheel (oof)
 
 Data recorded can be found in data/records_x/
 
-### Train a Model
+### Before Training
 
 If you have a GPU: install [CUDA support for tensorflow](https://www.tensorflow.org/install/gpu)
 
@@ -80,6 +80,8 @@ Note: If you have CUDA installed, and tensorflow says `Could not load dynamic li
 
     export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda/extras/CUPTI/lib64
     export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda-10.2/lib64
+
+### Train a Model
 
 `python manage.py train --tub data/records_1 --model ./models/pilot.h5` 
 
