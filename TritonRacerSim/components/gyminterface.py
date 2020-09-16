@@ -29,14 +29,15 @@ DEFAULT_GYM_CONFIG = {
     "fov" : 80, 
     "fish_eye_x" : 0.0, 
     "fish_eye_y" : 0.0, 
-    "img_w" : 320, 
-    "img_h" : 160, 
+    "img_w" : 160, 
+    "img_h" : 120, 
     "img_d" : 3, 
     "img_enc" : 'JPG', 
     "offset_x" : 0.0, 
-    "offset_y" : 1, 
-    "offset_z" : 2.0, 
+    "offset_y" : 3, 
+    "offset_z" : 1.0, 
     "rot_x" : 0.0,
+    # "rot_y": 180,
 
     'scene_name': 'mountain_track',
     'sim_host': '127.0.0.1',
@@ -141,9 +142,12 @@ class GymInterface(Component, SDClient):
         "offset_x" : self.gym_config['offset_x'].__str__(), 
         "offset_y" : self.gym_config['offset_y'].__str__(), 
         "offset_z" : self.gym_config['offset_z'].__str__(), 
-        "rot_x" : self.gym_config['rot_x'].__str__() }
+        "rot_x" : self.gym_config['rot_x'].__str__() 
+        }
         self.send_now(json.dumps(msg))
         '''
+        print (f"Gym Interface: Camera resolution ({self.gym_config['img_w']}, {self.gym_config['img_h']}).")
+        
 
     def send_controls(self, steering, throttle, breaking):
         msg = { "msg_type" : "control",

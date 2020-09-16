@@ -379,7 +379,7 @@ def train(cfg, data_paths, model_path, transfer_path=None):
     model = None
 
     model_type = ModelType(cfg['model_type'])
-    input_shape = (cfg['cam_h'], cfg['cam_w'], 3)
+    input_shape = (cfg['img_h'], cfg['img_w'], 3)
 
     if model_type == ModelType.CNN_2D:
         loader = DataLoader(*data_paths)

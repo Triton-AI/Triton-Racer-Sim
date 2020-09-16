@@ -50,19 +50,21 @@ class KerasPilot(Component):
                 # start_time = time.time()
                 steering_and_throttle = self.model(img_arr)
                 # print(f'Prediction time: {time.time() - start_time}')
-                toreturn = steering_and_throttle.numpy()[0][0], steering_and_throttle.numpy()[0][1], 0.0
+                toreturn = self.__cap(steering_and_throttle.numpy()[0][0]), self.__cap(steering_and_throttle.numpy()[0][1]), 0.0
                 # print(f'{toreturn}\r', end = '')
                 return toreturn
             elif self.model_type == ModelType.CNN_2D_SPD_FTR:
                 spd = np.asarray((args[1] / 20,), dtype=np.float32)
                 spd = spd.reshape((1,) + spd.shape) 
+                # print (img_arr.shape)
                 steering_and_throttle = self.model((img_arr, spd))
-                toreturn = steering_and_throttle.numpy()[0][0], steering_and_throttle.numpy()[0][1], 0.0
+                toreturn = self.__cap(steering_and_throttle.numpy()[0][0]), self.__cap(steering_and_throttle.numpy()[0][1] * 0.95), 0.0
                 # print(f'{toreturn}\r', end = '')
                 return toreturn
             elif self.model_type == ModelType.CNN_2D_SPD_CTL:
+                # print (img_arr.shape)
                 steering_and_speed = self.model(img_arr)
-                steering = steering_and_speed.numpy()[0][0]
+                steering = self.__cap(steering_and_speed.numpy()[0][0])
                 speed = steering_and_speed.numpy()[0][1] * 20
                 breaking = 0.0
                 if (speed * self.speed_control_threshold > args[1]): # Accelerate to match the predicted speed
@@ -80,10 +82,10 @@ class KerasPilot(Component):
                 features = np.asarray((args[2],), dtype=np.float32)
                 features = features.reshape((1,) + features.shape)
                 steering_and_speed = self.model((img_arr, spd, features))
-                steering = steering_and_speed.numpy()[0][0]
+                steering = self.__cap(steering_and_speed.numpy()[0][0])
                 speed = steering_and_speed.numpy()[0][1] * 20
                 breaking = 0.0
-                if (speed * 1.15 > args[1]): # Accelerate to match the predicted speed
+                if (speed * self.speed_control_threshold > args[1]): # Accelerate to match the predicted speed
                     throttle = 1.0
                 else:
                     throttle = 0.0 # Decelerate to match the predicted speed
@@ -98,6 +100,11 @@ class KerasPilot(Component):
             
     def getName(self):
         return 'Keras Pilot'
+
+    def __cap(self, val):
+        if val < -1.0: val = -1.0
+        elif val > 1.0: val = 1.0
+        return val
 
 
 class PilotTester:

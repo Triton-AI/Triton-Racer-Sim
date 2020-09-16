@@ -33,6 +33,9 @@ class DataStorage(Component):
 
     def onStart(self):
         self.on = True
+        
+        status = 'ON' if self.recording else 'OFF'
+        print(f'Data Storage: Recording is {status}')
 
     def onShutdown(self):
         """Shutdown"""
