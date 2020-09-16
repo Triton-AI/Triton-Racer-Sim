@@ -1,7 +1,7 @@
 # Triton-Racer-Sim
 An autonomous robocar simulation client, designed to work with [donkey gym](https://github.com/tawnkramer/gym-donkeycar).
 
-The project is inspired by, and has taken refernece from [donkeycar](https://www.donkeycar.com/).
+The project is inspired by, and has taken reference from [donkeycar](https://www.donkeycar.com/).
 
 ## Progress
 Driving and training pipeline is up and running.
