@@ -23,7 +23,7 @@ Config added. Use `python manage.py generateconfig` to create one.
 1. Install [miniconda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html)
 2. `conda create -n tritonracer python=3.8`
 3. `conda activate tritonracer`
-4. `pip install docopt tensorflow pillow keras pygame==2.0.0.dev10`
+4. `pip install docopt tensorflow pillow keras opencv-python pygame==2.0.0.dev10`
 5. `conda install scikit-learn`
 6. Setup [donkey gym](http://docs.donkeycar.com/guide/simulator/#install) in this environment (omit `conda activate donkey` in the original installation procedure)
     1. If you have a donkeycar installation with donkey gym setup, navigate to the donkey gym repository. If not, find a suitable place and `git clone https://github.com/tawnkramer/gym-donkeycar`
@@ -41,6 +41,8 @@ Creation of car instances will be supported later.
 
 ### Config File
 `python manage.py generateconfig` will create a myconfig.json under the car_template. 
+
+**For detailed information about what each setting does: check out `TritonRacerSim/core/config.py` for detailed explanations.**
 
 ### Drive the Car
 
@@ -131,7 +133,7 @@ How to write your custom component for tritonracer:
 Features to come:
 1. 3D covolution networks
 2. Reinforcement learning
-3. Filtering
-4. Migration to real car
+3. Migration to real car
+4. ~~Image filtering~~
 5. Packaging the software
 6. Merging with donkeycar
