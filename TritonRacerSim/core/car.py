@@ -6,6 +6,7 @@ import time
 
 class Car:
     def __init__(self, loop_hz=30):
+        self.print_welcome_message()
         self.pool = DataPool()
         self.components = []
         self.component_threads = []
@@ -24,6 +25,7 @@ class Car:
             print (f'   Seperate thread added')
         
     def start(self):
+        # self.print_welcome_message()
         #Ready
         print('\n[Initiating Start Sequence]')
         for component in self.components:
@@ -67,6 +69,12 @@ class Car:
         finally:
             self.stop()
 
+    def print_welcome_message(self):
+        print('''
+        ***********************************************************
+        TritonRacer [https://github.com/Triton-AI/Triton-Racer-Sim]
+        ***********************************************************
+        ''')
 
     def stop(self):
         print('[Stopping car]')

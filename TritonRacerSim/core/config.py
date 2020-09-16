@@ -8,6 +8,7 @@ config = {
     'img_h': 120,
 
     'preprocessing_enabled': False, # Enable image filtering. Original image is NOT preserved at this stage.
+    'preprocessing_preview_enabled': True, # Display an OpenCV imshow window to monitor the preprocessing
     'preprocessing_contrast_enhancement_ratio': 1.0, # Enhance contrast, especially on the new robo racing league track
     'preprocessing_contrast_enhancement_offset': 125, # Ranging [0,255]. Pixels above this value will be positively boosted, vise versa, and hence enhancing the contrast of the image.
     'preprocessing_color_filter_enabled': False, # Filtering out the interested colors. Checkout Triton AI Color Filter Tutorial.

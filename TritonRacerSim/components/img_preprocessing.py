@@ -30,8 +30,9 @@ class ImgPreprocessing(Component):
             self.to_process_img = None
             img = self.__process(img)
             self.processed_img = img
-            cv2.imshow("Img Preprocessing", cv2.cvtColor(self.processed_img,cv2.COLOR_RGB2BGR))
-            cv2.waitKey(1)           
+            if self.cfg['preprocessing_preview_enabled']:
+                cv2.imshow("Img Preprocessing", cv2.cvtColor(self.processed_img,cv2.COLOR_RGB2BGR))
+                cv2.waitKey(1)           
 
     def __process(self, img):
         #print(img.shape)
