@@ -95,7 +95,10 @@ Note: If you have CUDA installed, and tensorflow says `Could not load dynamic li
 
 RAM usage (120 * 160 image, 7000 Records): 8GB
 
-GPU usage (120 * 160 image, 128 batch size): 3GB
+VRAM usage (120 * 160 image, 128 batch size): 3GB
+
+**IMPORTANT** If you run into insufficient memory issue, follow [this](https://linuxize.com/post/how-to-add-swap-space-on-ubuntu-18-04/) guide to pre-allocate space for Ubuntu swap file (Allocate more than the size of your physical RAM). Windows users, click [here](https://answers.microsoft.com/en-us/windows/forum/windows_10-performance/how-to-increase-virtual-memory-in-windows-10-a/46dacaf5-15cf-4f5d-9d5a-cba1401ae4c9). Your system may stall momentarily duing training in the first two epoches.
+
 
 #### Model Types
 
