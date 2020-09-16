@@ -52,12 +52,12 @@ class Car:
                     # print (f'{component.getName()} output: {returns}')
                 duration = time.time() - begin_time
 
-                if duration > loop_time:
-                    
+                if duration > loop_time:                    
+                    if compromised:
+                        print(f'Loop frequency compromised! Actual time: {duration * 1000} ms')
+                        print('[Part Performances]')
+                        self.profiler.dump()
                     compromised = True
-                    print(f'Loop frequency compromised! Actual time: {duration * 1000} ms')
-                    print('[Part Performances]')
-                    self.profiler.dump()
                 else:
                     time_left = loop_time - duration
                     time.sleep(time_left)

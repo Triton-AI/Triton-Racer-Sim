@@ -29,9 +29,11 @@ class KerasPilot(Component):
         self.speed_control_reverse = cfg['speed_control_reverse']
         self.speed_control_break = cfg['speed_control_break']
 
-        # from threading import Thread
-        # t = Thread(target=self.prediction_thread, daemon=False)
-        # t.start()
+        self.smooth_steering = cfg['smooth_steering_enabled']
+        self.smooth_steering_threshold = cfg['smooth_steering_threshold']
+
+        if self.smooth_steering:
+            print('[WARNING] Smooth-Steering Enabled')
 
     
     def step(self, *args):
@@ -50,17 +52,23 @@ class KerasPilot(Component):
                 # start_time = time.time()
                 steering_and_throttle = self.model(img_arr)
                 # print(f'Prediction time: {time.time() - start_time}')
-                toreturn = self.__cap(steering_and_throttle.numpy()[0][0]), self.__cap(steering_and_throttle.numpy()[0][1]), 0.0
-                # print(f'{toreturn}\r', end = '')
-                return toreturn
+                steering = self.__cap(steering_and_throttle.numpy()[0][0])
+                throttle = self.__cap(steering_and_throttle.numpy()[0][1])
+
+                steering = self.__smooth_steering(steering)
+
+                return steering, throttle, 0.0
             elif self.model_type == ModelType.CNN_2D_SPD_FTR:
                 spd = np.asarray((args[1] / 20,), dtype=np.float32)
                 spd = spd.reshape((1,) + spd.shape) 
                 # print (img_arr.shape)
                 steering_and_throttle = self.model((img_arr, spd))
-                toreturn = self.__cap(steering_and_throttle.numpy()[0][0]), self.__cap(steering_and_throttle.numpy()[0][1] * 0.95), 0.0
-                # print(f'{toreturn}\r', end = '')
-                return toreturn
+                steering = self.__cap(steering_and_throttle.numpy()[0][0])
+                throttle = self.__cap(steering_and_throttle.numpy()[0][1])
+
+                steering = self.__smooth_steering(steering)
+
+                return steering, throttle, 0.0
             elif self.model_type == ModelType.CNN_2D_SPD_CTL:
                 # print (img_arr.shape)
                 steering_and_speed = self.model(img_arr)
@@ -72,9 +80,10 @@ class KerasPilot(Component):
                 else:
                     throttle = self.speed_control_reverse # Decelerate to match the predicted speed
                     breaking = self.speed_control_break
-                toreturn = steering * 1, throttle, breaking
-                # print(f'{toreturn}\r', end = '')
-                return toreturn
+                
+                steering = self.__smooth_steering(steering)
+                
+                return steering, throttle, breaking
             elif self.model_type == ModelType.CNN_2D_FULL_HOUSE:
                 # print (args[1], args[2], args[3])
                 spd = np.asarray(args[1]/20, dtype=np.float32)
@@ -90,9 +99,10 @@ class KerasPilot(Component):
                 else:
                     throttle = 0.0 # Decelerate to match the predicted speed
                     breaking = 0.0
-                toreturn = steering, throttle, breaking
-                # print(f'{toreturn}\r', end = '')
-                return toreturn
+
+                steering = self.__smooth_steering(steering)
+
+                return steering, throttle, breaking
         return 0.0, 0.0, 0.0
 
     def onShutdown(self):
@@ -104,6 +114,14 @@ class KerasPilot(Component):
     def __cap(self, val):
         if val < -1.0: val = -1.0
         elif val > 1.0: val = 1.0
+        return val
+
+    def __smooth_steering(self, val):
+        if self.smooth_steering:
+            if val > self.smooth_steering_threshold:
+                val = 1.0
+            elif val < self.smooth_steering_threshold * -1:
+                val = -1.0
         return val
 
 

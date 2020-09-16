@@ -42,7 +42,7 @@ class DataStorage(Component):
         self.on = False
         if not len(os.listdir(self.storage_path)): # Delete the data folder if there is no data collected
             os.rmdir(self.storage_path)
-            print(f'{self.storage_path} has been deleted since no data was recorded in this session')
+            print(f'{self.storage_path} has been DELETED since no data was recorded in this session.')
 
 
     def getName(self):
@@ -68,10 +68,11 @@ class DataStorage(Component):
 
 
     def __storeImg(self, count, record={}):
-        if record['cam/img'] is not None:
+        img_string = 'cam/img' if 'cam/img' in record else 'cam/processed_img'
+        if  record[img_string] is not None:
             img_path = path.join(self.storage_path, f'img_{count}.jpg')
-            Image.fromarray(record['cam/img']).save(img_path)
-            record['cam/img'] = f'img_{count}.jpg'
+            Image.fromarray(record[img_string]).save(img_path)
+            record[img_string] = f'img_{count}.jpg'
 
     def __delRecords(self, num):
         # original_count = self.count

@@ -32,26 +32,44 @@ def assemble_car(cfg = {}, model_path = None):
 
     from TritonRacerSim.components.controlmultiplexer import ControlMultiplexer
     from TritonRacerSim.components.gyminterface import GymInterface
+    from TritonRacerSim.components.img_preprocessing import ImgPreprocessing
     from TritonRacerSim.components.datastorage import  DataStorage
     from TritonRacerSim.components.track_data_process import LocationTracker
 
-    #joystick = G28DrivingWheel()
-    joystick = get_joystick_by_name(cfg['joystick_type'])
-    mux = ControlMultiplexer(cfg)
-    gym = GymInterface(poll_socket_sleep_time=0.01,gym_config=cfg)
-    storage = DataStorage()
-
+    # Autopilot
     if model_path is not None:
         from TritonRacerSim.components.keras_pilot import KerasPilot
         pilot = KerasPilot(cfg, model_path, ModelType(cfg['model_type']))
+        if cfg['preprocessing_enabled']:
+            pilot.step_inputs[0] = 'cam/processed_img'
         car.addComponent(pilot)
 
+    # Joystick
+    joystick = get_joystick_by_name(cfg['joystick_type'])
     car.addComponent(joystick)
+
+    # Control Signal Multiplexer
+    mux = ControlMultiplexer(cfg)
     car.addComponent(mux)
+
+    # Interface with donkeygym
+    gym = GymInterface(poll_socket_sleep_time=0.01,gym_config=cfg)
     car.addComponent(gym)
+
+    #Image preprocessing
+    if cfg['preprocessing_enabled']:
+        preprocessing = ImgPreprocessing(cfg)
+        car.addComponent(preprocessing)
+
+    # Location tracker (for mountain track)
     if cfg['use_location_tracker']:
         tracker = LocationTracker(track_data_path=cfg['track_data_file'])
         car.addComponent(tracker)
+
+    # Data storage
+    storage = DataStorage()
+    if cfg['preprocessing_enabled']:
+        storage.step_inputs[0] = 'cam/processed_img'
     car.addComponent(storage)
 
     return car
