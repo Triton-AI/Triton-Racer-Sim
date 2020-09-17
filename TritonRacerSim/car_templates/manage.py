@@ -70,6 +70,9 @@ def assemble_car(cfg = {}, model_path = None):
     storage = DataStorage()
     if cfg['preprocessing_enabled']:
         storage.step_inputs[0] = 'cam/processed_img'
+        if cfg['preproceessing_keep_original']:
+            original_data_storage = DataStorage(storage_path=storage.storage_path[0:-1]+'_original/')
+            car.addComponent(original_data_storage)
     car.addComponent(storage)
 
     return car

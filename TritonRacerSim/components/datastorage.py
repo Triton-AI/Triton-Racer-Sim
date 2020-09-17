@@ -10,11 +10,12 @@ import time
 import queue
 
 class DataStorage(Component):
-    def __init__(self, to_store=['cam/img', 'mux/throttle', 'mux/steering', 'mux/break', 'gym/speed', 'loc/segment', 'gym/x', 'gym/y', 'gym/z', 'gym/cte']):
-        Component.__init__(self, inputs=to_store, threaded=False)
+    def __init__(self, to_store=['cam/img', 'mux/throttle', 'mux/steering', 'mux/break', 'gym/speed', 'loc/segment', 'gym/x', 'gym/y', 'gym/z', 'gym/cte'], storage_path = None):
+        super().__init__(inputs=to_store, threaded=False)
         self.step_inputs += ['usr/del_record', 'usr/toggle_record']
         self.on = True
-        self.storage_path = self.__getStoragePath()
+        self.storage_path = self.__getStoragePath() if storage_path is None else storage_path
+        os.mkdir(self.storage_path)
         self.count = 0
         self.recording = False
         self.records_temp = queue.Queue() #temporary storage of records in memory, awaiting file io
@@ -33,7 +34,8 @@ class DataStorage(Component):
 
     def onStart(self):
         self.on = True
-        
+        # print(f'Data Storage: Variables to Store: {self.step_inputs}')
+
         status = 'ON' if self.recording else 'OFF'
         print(f'Data Storage: Recording is {status}')
 
@@ -52,12 +54,14 @@ class DataStorage(Component):
         car_path = sys.path[0]
         data_dir = path.join(car_path, 'data/')
 
+        if not path.exists(data_dir):
+            os.mkdir(data_dir)
+
         i = 1
-        while path.exists(path.join(data_dir, f'records_{i}/')):
+        while path.exists(path.join(data_dir, self.__get_record_folder_name(i))):
             i += 1
         
-        dir_path = path.join(data_dir, f'records_{i}/')
-        os.mkdir(dir_path)
+        dir_path = path.join(data_dir, self.__get_record_folder_name(i))
         return dir_path
 
     def __store(self, count, record={}):
@@ -87,6 +91,9 @@ class DataStorage(Component):
             os.remove(img_path)
             os.remove(record_path)
         '''
+
+    def __get_record_folder_name(self, idx):
+        return f'records_{idx}/'
 
     def file_io_thread(self):
         # a seperate thread for file io

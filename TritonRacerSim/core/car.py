@@ -22,7 +22,7 @@ class Car:
         if component.threaded:
             component_thread = Thread(target=component.thread_step, args=(), daemon=True)
             self.component_threads.append(component_thread)
-            print (f'   Seperate thread added')
+            print (f'   Separate thread added')
         
     def start(self):
         # self.print_welcome_message()

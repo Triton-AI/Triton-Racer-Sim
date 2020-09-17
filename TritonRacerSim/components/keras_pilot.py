@@ -35,6 +35,7 @@ class KerasPilot(Component):
         if self.smooth_steering:
             print('[WARNING] Smooth-Steering Enabled')
 
+        self.cfg = cfg
     
     def step(self, *args):
         if args[0] is None:
@@ -104,6 +105,10 @@ class KerasPilot(Component):
 
                 return steering, throttle, breaking
         return 0.0, 0.0, 0.0
+
+    def onStart(self):
+        if self.cfg['preprocessing_enabled']:
+            print('[WARNING] Image preprocessing is enabled. Autopilot is fed with FILTERED image.')
 
     def onShutdown(self):
         self.on = False

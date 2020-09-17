@@ -4,8 +4,8 @@ class Component(ABC):
 
     def __init__(self, inputs = [], outputs = [], threaded = False):
         """The name of input and output values must be provided as strings (e.g. 'speed', 'throttle')"""
-        self.step_inputs = inputs
-        self.step_outputs = outputs
+        self.step_inputs = inputs.copy()
+        self.step_outputs = outputs.copy()
         self.threaded = threaded
 
     def onStart(self):

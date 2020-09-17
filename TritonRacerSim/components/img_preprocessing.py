@@ -1,5 +1,5 @@
 import time
-
+from copy import copy
 import cv2
 import numpy as np
 from PIL import Image
@@ -17,7 +17,7 @@ class ImgPreprocessing(Component):
 
     def step(self, *args):
         img_arr = args[0]
-        self.to_process_img = img_arr
+        self.to_process_img = copy(img_arr) if img_arr is not None else None
         return self.processed_img,
 
     def thread_step(self):
