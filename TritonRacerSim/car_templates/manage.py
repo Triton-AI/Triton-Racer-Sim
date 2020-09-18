@@ -20,11 +20,11 @@ def get_joystick_by_name(joystick_name):
     from TritonRacerSim.components.controller import JoystickType, G28DrivingWheel, PS4Joystick, XBOXJoystick
     joysitck_type = JoystickType(joystick_name)
     if joysitck_type == JoystickType.PS4:
-        return PS4Joystick()
+        return PS4Joystick(cfg)
     elif joysitck_type == JoystickType.G28:
-        return G28DrivingWheel()
+        return G28DrivingWheel(cfg)
     elif joysitck_type == JoystickType.XBOX:
-        return XBOXJoystick()
+        return XBOXJoystick(cfg)
     else:
         raise Exception(f'Unsupported joystick type: {joysitck_type}. Could be still under development.')
 
@@ -36,6 +36,7 @@ def assemble_car(cfg = {}, model_path = None):
     from TritonRacerSim.components.img_preprocessing import ImgPreprocessing
     from TritonRacerSim.components.datastorage import  DataStorage
     from TritonRacerSim.components.track_data_process import LocationTracker
+    from TritonRacerSim.components.driver_assistance import DriverAssistance
 
     # Autopilot
     if model_path is not None:
@@ -52,6 +53,11 @@ def assemble_car(cfg = {}, model_path = None):
     # Control Signal Multiplexer
     mux = ControlMultiplexer(cfg)
     car.addComponent(mux)
+
+    # Driver Assistance
+    if cfg['drive_assist_enabled']:
+        assistant = DriverAssistance(cfg)
+        car.addComponent(assistant)
 
     # Interface with donkeygym
     gym = GymInterface(poll_socket_sleep_time=0.01,gym_config=cfg)
@@ -93,7 +99,13 @@ if __name__ == '__main__':
         cfg = read_config(path.abspath('./myconfig.json'))
 
         if args['drive']:
-            
+            sim_path = cfg['donkey_sim_full_path']
+            if sim_path != 'remote':
+                import subprocess, time
+                print (f'[Launching Local Simulator] {sim_path}')
+                subprocess.Popen(sim_path)
+                time.sleep(3)
+
             model_path =None
             if args['--model']:
                 model_path = path.abspath(args['--model'])

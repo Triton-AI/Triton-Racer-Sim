@@ -23,7 +23,13 @@ config = {
     'preprocessing_edge_detection_destination_channel': 2, # Which channel to put the filtered layer? 0 | 1 | 2 for RGB image
 
     'joystick_type': 'ps4', # ps4 | xbox | g28 Wired joysticks recommended. ps4 joystick over bluetooth may end up with different joystick mappings. WIP.
-    
+    'joystick_max_throttle': 1.0, # throttle limiter (0, 1]
+    'joystick_max_steering': 1.0, # steering limiter (0, 1]
+
+    'drive_assist_enabled': True,
+    'drive_assist_limit_mode': 'steering', # speed | steering. 'speed' means limiting speed to match steering, vise versa.
+    'drive_assist_limit_k': 5, # k as in y = k / x. Speed and steering are inversly proportional
+
     'ai_launch_boost_throttle_enabled': False, # Lock throttle when switching from ai-steering to full-ai mode
     'ai_launch_boost_throttle_value': 1.0,
     'ai_launch_boost_throttle_duration': 5,
@@ -53,6 +59,7 @@ config = {
     'body_rgb': (24, 43, 73),
     'guid': 'will_be_overwritten_when_generating_config',
 
+    'donkey_sim_full_path': 'remote',
     'scene_name': 'roboracingleague_1',
     'sim_path': 'remote', # Does not work currently
     'sim_host': '127.0.0.1',

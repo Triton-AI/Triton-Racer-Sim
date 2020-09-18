@@ -17,7 +17,7 @@ class JoystickType(Enum):
 
 class Controller(Component):
     '''Generic base class for controllers'''
-    def __init__(self):
+    def __init__(self, cfg):
         Component.__init__(self, threaded=True, outputs=['usr/steering', 'usr/throttle', 'usr/breaking', 'usr/mode', 'usr/del_record', 'usr/toggle_record', 'usr/reset'])
         self.mode = DriveMode.HUMAN
         self.del_record = False
@@ -26,6 +26,7 @@ class Controller(Component):
         self.steering = 0.0
         self.throttle = 0.0
         self.breaking = 0.0
+        self.cfg = cfg
     def getName(self):
         return 'Generic Controller'
 
@@ -34,8 +35,9 @@ G28_CONFIG={'steering_axis':0, 'throttle_axis': 2, 'break_axis' : 3,  'toggle_mo
 XBOX_CONFIG={'steering_axis': 0, 'throttle_axis': 4, 'break_axis': 5, 'toggle_mode_but': 6, 'del_record_but': 3, 'toggle_record_but': 1, 'reset_but': 2, 'has_break': True}
 
 class PygameJoystick(Controller):
-    def __init__(self, joystick_type):
-        Controller.__init__(self)
+    def __init__(self, cfg):
+        Controller.__init__(self, cfg)
+        joystick_type = cfg['joystick_type']
         os.environ["SDL_VIDEODRIVER"] = "dummy"
         pygame.init()
         pygame.joystick.init()
@@ -67,6 +69,7 @@ class PygameJoystick(Controller):
         poll_interval = 10 # ms
         poll_interval /= 1000.0
 
+        # Function map: trigger the corresponding function according to which button is pressed.
         switcher = {self.joystick_map['del_record_but']: self.__delRecord,
                     self.joystick_map['toggle_record_but']: self.__toggleRecord,
                     self.joystick_map['toggle_mode_but']: self.__toggleMode,
@@ -75,6 +78,10 @@ class PygameJoystick(Controller):
         while self.on:
             self.steering = self.map_steering(self.joystick.get_axis(self.joystick_map['steering_axis']))
             self.throttle = self.map_throttle(self.joystick.get_axis(self.joystick_map['throttle_axis']))
+
+            self.steering = self.limit_steering(self.steering)
+            self.throttle = self.limit_throttle(self.throttle)
+
             if self.joystick_map['has_break']:
                 self.breaking = self.map_break(self.joystick.get_axis(self.joystick_map['break_axis']))
 
@@ -89,7 +96,7 @@ class PygameJoystick(Controller):
         pygame.quit()
 
     def getName(self):
-        return 'Pygame Joystick'
+        return 'Generic Pygame Joystick'
 
     def __toggleMode(self):
         if self.mode == DriveMode.HUMAN:
@@ -117,6 +124,15 @@ class PygameJoystick(Controller):
         self.reset = True
         print('Car reset.')
 
+    def __limit_val(self, val, limit):
+        return val * limit
+
+    def limit_throttle(self, val):
+        return self.__limit_val(val, self.cfg['joystick_max_throttle'])
+    
+    def limit_steering(self, val):
+        return self.__limit_val(val, self.cfg['joystick_max_steering'])
+
     def map_steering(self, val):
         return val
 
@@ -127,8 +143,8 @@ class PygameJoystick(Controller):
         return val
 
 class G28DrivingWheel(PygameJoystick):
-    def __init__(self):
-        PygameJoystick.__init__(self, 'g28')
+    def __init__(self, cfg):
+        PygameJoystick.__init__(self, cfg)
 
     def map_steering(self, val):
         val *= 5
@@ -151,8 +167,8 @@ class G28DrivingWheel(PygameJoystick):
 
 
 class PS4Joystick(PygameJoystick):
-    def __init__(self):
-        PygameJoystick.__init__(self, 'ps4')
+    def __init__(self, cfg):
+        PygameJoystick.__init__(self, cfg)
 
     def map_steering(self, val):
         return val
@@ -167,8 +183,8 @@ class PS4Joystick(PygameJoystick):
         return val
 
 class XBOXJoystick(PygameJoystick):
-    def __init__(self):
-        PygameJoystick.__init__(self, 'xbox')
+    def __init__(self, cfg):
+        PygameJoystick.__init__(self, cfg)
 
     def map_steering(self, val):
         return val
