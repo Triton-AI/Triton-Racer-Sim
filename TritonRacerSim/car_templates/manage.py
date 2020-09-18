@@ -2,9 +2,10 @@
 Scripts to drive a triton racer car
 
 Usage:
-    manage.py (drive) [--model=<model>] [--js]
+    manage.py (drive) [--model=<model>]
     manage.py (train) (--tub=<tub1,tub2,..tubn>) (--model=<model>) [--transfer=<model>]
     manage.py (generateconfig)
+    manage.py (postprocess) (--source=<original_data_folder>) (--destination=<processed_data_folder>)
 """
 
 import sys
@@ -82,6 +83,10 @@ if __name__ == '__main__':
     if args['generateconfig']:
         from TritonRacerSim.core.config import generate_config
         generate_config('./myconfig.json')
+
+    elif args['postprocess']:
+        from TritonRacerSim.utils.post_process import post_process
+        post_process(args['--source'], args['--destination'])
 
     else:
         from TritonRacerSim.core.config import read_config

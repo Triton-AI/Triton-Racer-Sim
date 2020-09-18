@@ -39,9 +39,7 @@ class ImgPreprocessing(Component):
         layers=[]
         merge_instruction=[]
 
-        target_brightness = 550
-        img = self.__trim_brightness_contrast(img, target_brightness)
-
+        img = self.__trim_brightness_contrast(img)
         if self.cfg['preprocessing_color_filter_enabled']:
             color_filtered_layers = self.__color_filter(img)
             #print(img.shape)
@@ -80,14 +78,20 @@ class ImgPreprocessing(Component):
         threshold_b = self.cfg['preprocessing_edge_detection_threshold_b']
         return cv2.Canny(img, threshold_a, threshold_b)
 
-    def __trim_brightness_contrast(self, img, target_brightness):
+    def __trim_brightness_contrast(self, img):
         #mean = cv2.mean(img[40:119,:,:])
         #multiplier = target_brightness / sum(list(mean))
         contrast = self.cfg['preprocessing_contrast_enhancement_ratio']
         offset = self.cfg['preprocessing_contrast_enhancement_offset']
-        brightness = 0.0
+        brightness_baseline = self.cfg['preprocessing_brightness_baseline']
+
+        current_brightness = sum(list(cv2.mean(img[40:119,:,:])))
+        delta = (brightness_baseline - current_brightness) / 3
+
 
         img_arr = img.astype(np.float32)
+        if self.cfg['preprocessing_dynamic_brightness_enabled']:
+            img_arr += delta
         img_arr -= offset
         img_arr *= contrast
         img_arr += offset

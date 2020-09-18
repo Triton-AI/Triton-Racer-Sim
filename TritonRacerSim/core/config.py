@@ -12,6 +12,8 @@ config = {
     'preproceessing_keep_original': False, # Store the original image data under data/records_x_original/
     'preprocessing_contrast_enhancement_ratio': 1.0, # Enhance contrast, especially on the new robo racing league track
     'preprocessing_contrast_enhancement_offset': 125, # Ranging [0,255]. Pixels above this value will be positively boosted, vise versa, and hence enhancing the contrast of the image.
+    'preprocessing_dynamic_brightness_enabled': False, # Automatically adjust the brightness of the image
+    'preprocessing_brightness_baseline': 550, # Used to, for example, increase the brightness of pictures taken in the dark corners of the track
     'preprocessing_color_filter_enabled': False, # Filtering out the interested colors. Checkout Triton AI Color Filter Tutorial.
     'preprocessing_color_filter_hsvs': [((0, 0, 130),(180, 64, 255)),((25, 180, 155),(43, 255, 255))], # upper and lower bounds (HSV) of each color detection. In this case white and yellow.
     'preprocessing_color_filter_destination_channels':[0, 1], # Which channel to put the filtered layers? 0 | 1 | 2 for RGB image. Must match the number of hsv filters above.)
