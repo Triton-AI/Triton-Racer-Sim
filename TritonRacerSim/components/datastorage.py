@@ -68,7 +68,7 @@ class DataStorage(Component):
         self.__storeImg(count, record)
         record_path = path.join(self.storage_path, f'record_{count}.json')
         with open(record_path, 'w') as recordFile:
-            json.dump(record, recordFile)
+            json.dump(str(record), recordFile)
 
 
     def __storeImg(self, count, record={}):
