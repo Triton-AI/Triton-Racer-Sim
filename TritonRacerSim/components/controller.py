@@ -163,7 +163,8 @@ class G28DrivingWheel(PygameJoystick):
         if val < 0.01:
             val = 0.0
         return val
-
+    def getName(self):
+        return 'G28 Driving Wheel'
 
 
 class PS4Joystick(PygameJoystick):
@@ -182,6 +183,10 @@ class PS4Joystick(PygameJoystick):
             val = 0.0
         return val
 
+    def getName(self):
+        return 'PS4 Joystick'   
+
+
 class XBOXJoystick(PygameJoystick):
     def __init__(self, cfg):
         PygameJoystick.__init__(self, cfg)
@@ -197,3 +202,6 @@ class XBOXJoystick(PygameJoystick):
         if val < 0.2:
             val = 0.0
         return val
+
+    def getName(self):
+        return 'XBox Joystick'
