@@ -26,20 +26,20 @@ config = {
 
     # On-board Electronics
     'sub_board_type': 'PCA9685', # PCA9685 | TEENSY | GPIO # Who is responsible for sending PWM signals to the motor and servo?
-    'calibrate_max_throttle_pwm': 400,
+    'calibrate_max_forward_pwm': 400,
     'calibrate_zero_throttle_pwm': 370,
-    'calibrate_min_throttle_pwm': 320,
-    'calibrate_max_throttle_pwm': 400,
-    'calibrate_max_left_pwm': 300,
-    'calibrate_max_right_pwm': 500,
-    'calibrate_neutral_steering_pwm': 400,
+    'calibrate_max_reverse_pwm': 330,
+    'calibrate_max_left_pwm': 430,
+    'calibrate_max_right_pwm': 300,
+    'calibrate_neutral_steering_pwm': 350,
 
     'PCA9685_esc_channel': 1, # On PCA9685, which channel is the electronic speed controller (ESC) connected to?
     'PCA9685_servo_channel': 2, # On PCA9685, which channel is the servo connected to?
 
-    'teensy_port': '/dev/tty/ACM0',
+    'teensy_port': '/dev/ttyACM0',
     'teensy_baudrate': 115200,
     'teensy_watchdog_trigger_time': 100, # ms before the watchdog kicks in and shut down the system
+    'teensy_poll_interval': 25, # ms between each polling
 
     # Joystick
     'joystick_type': 'ps4', # ps4 | xbox | g28 Wired joysticks recommended. ps4 joystick over bluetooth may end up with different joystick mappings. WIP.

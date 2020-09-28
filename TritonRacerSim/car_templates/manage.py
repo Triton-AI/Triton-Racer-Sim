@@ -6,6 +6,7 @@ Usage:
     manage.py (train) (--tub=<tub1,tub2,..tubn>) (--model=<model>) [--transfer=<model>]
     manage.py (generateconfig)
     manage.py (postprocess) (--source=<original_data_folder>) (--destination=<processed_data_folder>)
+    manage.py (calibrate) [--steering] [--throttle] 
 """
 
 import sys
@@ -37,6 +38,7 @@ def assemble_car(cfg = {}, model_path = None):
     from TritonRacerSim.components.datastorage import  DataStorage
     from TritonRacerSim.components.track_data_process import LocationTracker
     from TritonRacerSim.components.driver_assistance import DriverAssistance
+    from TritonRacerSim.components.teensy import TeensyMC_Test
 
     # Autopilot
     if model_path is not None:
@@ -59,9 +61,14 @@ def assemble_car(cfg = {}, model_path = None):
         assistant = DriverAssistance(cfg)
         car.addComponent(assistant)
 
-    # Interface with donkeygym
-    gym = GymInterface(poll_socket_sleep_time=0.01,gym_config=cfg)
-    car.addComponent(gym)
+    # Interface with donkeygym, or real car electronics
+    if cfg['i_am_on_simulator']:
+        gym = GymInterface(poll_socket_sleep_time=0.01,gym_config=cfg)
+        car.addComponent(gym)
+    else:
+        if cfg['sub_board_type'] == 'TEENSY':
+            teensy = TeensyMC_Test(cfg)
+            car.addComponent(teensy)
 
     #Image preprocessing
     if cfg['preprocessing_enabled']:
@@ -127,3 +134,7 @@ if __name__ == '__main__':
             if (args['--transfer']):
                 transfer_path = args['--transfer']
             train(cfg, data_paths, model_path, transfer_path)
+
+        elif args['calibrate']:
+            from TritonRacerSim.utils.calibrate import calibrate
+            calibrate(cfg, args)
