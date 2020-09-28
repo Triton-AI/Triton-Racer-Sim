@@ -3,10 +3,12 @@ import uuid
 config = {
     'explanation': '''model_type: cnn_2d | cnn_2d_speed_as_feature | cnn_2d_speed_control | cnn_2d_full_house; joystick_type: ps4 | xbox | g28; sim_host: use 127.0.0.1 for local; track_data_file: used for position tracker to segment the track
     ''',
-
+    # Camera
     'img_w': 160,
     'img_h': 120,
+    'cam_type': 'WEBCAM', # WEBCAM | MOCK Put mock if the camera is not actually installed
 
+    # Image Preprocessing
     'preprocessing_enabled': False, # Enable image filtering
     'preprocessing_preview_enabled': True, # Display an OpenCV imshow window to monitor the preprocessing
     'preproceessing_keep_original': False, # Store the original image data under data/records_x_original/
@@ -22,14 +24,29 @@ config = {
     'preprocessing_edge_detection_threshold_b': 100,
     'preprocessing_edge_detection_destination_channel': 2, # Which channel to put the filtered layer? 0 | 1 | 2 for RGB image
 
+    # On-board Electronics
+    'sub_board_type': 'PCA9685', # PCA9685 | TEENSY | GPIO # Who is responsible for sending PWM signals to the motor and servo?
+    'calibrate_max_throttle_pwm': 400,
+    'calibrate_zero_throttle_pwm': 370,
+    'calibrate_min_throttle_pwm': 320,
+    'calibrate_max_throttle_pwm': 400,
+    'calibrate_max_left_pwm': 300,
+    'calibrate_max_right_pwm': 500,
+    'calibrate_neutral_steering_pwm': 400,
+
+    'PCA9685_esc_channel': 1, # On PCA9685, which channel is the electronic speed controller (ESC) connected to?
+    'PCA9685_servo_channel': 2, # On PCA9685, which channel is the servo connected to?
+
+    'teensy_port': '/dev/tty/ACM0',
+    'teensy_baudrate': 115200,
+    'teensy_watchdog_trigger_time': 100, # ms before the watchdog kicks in and shut down the system
+
+    # Joystick
     'joystick_type': 'ps4', # ps4 | xbox | g28 Wired joysticks recommended. ps4 joystick over bluetooth may end up with different joystick mappings. WIP.
     'joystick_max_throttle': 1.0, # throttle limiter (0, 1]
     'joystick_max_steering': 1.0, # steering limiter (0, 1]
 
-    'drive_assist_enabled': True,
-    'drive_assist_limit_mode': 'steering', # speed | steering. 'speed' means limiting speed to match steering, vise versa.
-    'drive_assist_limit_k': 5, # k as in y = k / x. Speed and steering are inversly proportional
-
+    # AI boost
     'ai_launch_boost_throttle_enabled': False, # Lock throttle when switching from ai-steering to full-ai mode
     'ai_launch_boost_throttle_value': 1.0,
     'ai_launch_boost_throttle_duration': 5,
@@ -38,9 +55,10 @@ config = {
     'ai_launch_lock_steering_value': 0.0,
     'ai_launch_lock_steering_duration': 3,
 
-    'smooth_steering_enabled': True, # Consider all AI steerings above the threshold a full steering (1.0 or -1.0)
+    'smooth_steering_enabled': False, # Consider all AI steerings above the threshold a full steering (1.0 or -1.0)
     'smooth_steering_threshold': 0.9,
 
+    # Training
     'model_type': 'cnn_2d_speed_control', # cnn_2d | cnn_2d_speed_as_feature | cnn_2d_speed_control | cnn_2d_full_house
     'early_stop': True, # Early stop when training hasn't made any progress within the patience
     'early_stop_patience': 5,
@@ -50,6 +68,8 @@ config = {
     'speed_control_break': 0.0, # Apply break when overspeed, e.g. 0.3. Break will OVERRIDE any throttle value.
     'batch_size': 64, # Lower it to save GPU resources, or increase it to experdite training.
 
+    # Simulator
+    'i_am_on_simulator': True, # Turn this on to go to simulator. Turn this off on real cars.
     'car_name': 'TritonRacer',
     'font_size': 50,
     'racer_name': 'Triton AI',
@@ -67,7 +87,12 @@ config = {
     'sim_latency': 0,
     
     'use_location_tracker': False, # Only for mountain track currently. Disable it when on other tracks.
-    'track_data_file': 'centerline.json'
+    'track_data_file': 'centerline.json',
+
+    # Driver Assistance
+    'drive_assist_enabled': False, # Drive assist for simulator. Not recommanded for real cars.
+    'drive_assist_limit_mode': 'steering', # speed | steering. 'speed' means limiting speed to match steering, vise versa.
+    'drive_assist_limit_k': 5, # k as in y = k / x. Speed and steering are inversly proportional
 
 }
 
