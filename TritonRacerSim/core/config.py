@@ -43,7 +43,7 @@ config = {
 
     # Joystick
     'joystick_type': 'ps4', # ps4 | xbox | g28 Wired joysticks recommended. ps4 joystick over bluetooth may end up with different joystick mappings. WIP.
-    'joystick_use_bluetooth': True, # For ps4 controller: is it connected via bluetooth or wire?
+    'joystick_use_bluetooth': False, # For ps4 controller: is it connected via bluetooth or wire?
     'joystick_max_throttle': 1.0, # throttle limiter (0, 1]
     'joystick_max_steering': 1.0, # steering limiter (0, 1]
 
@@ -64,11 +64,15 @@ config = {
     'early_stop': True, # Early stop when training hasn't made any progress within the patience
     'early_stop_patience': 5,
     'max_epoch': 100, # Max epoch to train
-    'speed_control_threshold': 1.1, # Allow the model to overspeed. 1.1 means 10% speeding.
-    'speed_control_reverse': 0.0, # Apply reverse throttle when overspeed, e.g. -0.4.
-    'speed_control_break': 0.0, # Apply break when overspeed, e.g. 0.3. Break will OVERRIDE any throttle value.
     'batch_size': 64, # Lower it to save GPU resources, or increase it to experdite training.
 
+    # Speed-based control params (for speed control and full house models)
+    'spd_ctl_threshold': 1.1, # Allow the model to overspeed. 1.1 means 10% above predicted speed.
+    'spd_ctl_reverse': True, # Apply reverse throttle when overspeed, e.g. -0.4.
+    'spd_ctl_throttle_multiplier': 1.0, # How hard the car should reverse
+    'spd_ctl_break': True, # WARRNING: OVERWRITES REVERSE. Apply break when overspeed, e.g. 0.3. Break will OVERRIDE any throttle value.
+    'spd_ctl_break_multiplier': 1.0, # How hard the car should break
+    
     # Simulator
     'i_am_on_simulator': True, # Turn this on to go to simulator. Turn this off on real cars.
     'car_name': 'TritonRacer',

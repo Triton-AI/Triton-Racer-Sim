@@ -7,6 +7,7 @@ Usage:
     manage.py (generateconfig)
     manage.py (postprocess) (--source=<original_data_folder>) (--destination=<processed_data_folder>)
     manage.py (calibrate) [--steering] [--throttle] 
+    manage.py (processtrack) (--tub=<data_folder>) (--output=<track_json_file>)
 """
 
 import sys
@@ -100,6 +101,11 @@ if __name__ == '__main__':
     elif args['postprocess']:
         from TritonRacerSim.utils.post_process import post_process
         post_process(args['--source'], args['--destination'])
+
+    elif args['processtrack']:
+        from TritonRacerSim.components.track_data_process import TrackDataProcessor
+        processor = TrackDataProcessor(args['--tub'], args['--output'])
+        processor.process()
 
     else:
         from TritonRacerSim.core.config import read_config

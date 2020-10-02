@@ -10,7 +10,7 @@ import numpy as np
 from gym_donkeycar.core.sim_client import SDClient
 
 '''Code Reference:
-https://github.com/tawnkramer/sdsandbox/blob/master/src/test_client.pyhttps://github.com/tawnkramer/sdsandbox/blob/master/src/test_client.py
+https://github.com/tawnkramer/sdsandbox/blob/master/src/test_client.py
 '''
 
 DEFAULT_GYM_CONFIG = {
@@ -39,7 +39,7 @@ DEFAULT_GYM_CONFIG = {
     "rot_x" : 0.0,
     # "rot_y": 180,
 
-    'scene_name': 'mountain_track',
+    'scene_name': 'generated_track',
     'sim_host': '127.0.0.1',
     # 'sim_host':'donkey-sim.roboticist.dev',
     'sim_port': 9091,
@@ -54,6 +54,7 @@ class GymInterface(Component, SDClient):
         Component.__init__(self, inputs=['mux/steering', 'mux/throttle', 'mux/breaking', 'usr/reset'], outputs=['cam/img', 'gym/x', 'gym/y', 'gym/z', 'gym/speed', 'gym/cte'], threaded=False)
         SDClient.__init__(self, self.gym_config['sim_host'], self.gym_config['sim_port'], poll_socket_sleep_time=poll_socket_sleep_time)
         self.load_scene(self.gym_config['scene_name'])
+        self.send_config()
         self.last_image = None
         self.car_loaded = False
 
@@ -84,7 +85,6 @@ class GymInterface(Component, SDClient):
 
     def on_msg_recv(self, json_packet):
         if json_packet['msg_type'] == "need_car_config":
-            print('Sending car config...')
             self.send_config()
 
         elif json_packet['msg_type'] == "car_loaded":
@@ -106,7 +106,8 @@ class GymInterface(Component, SDClient):
         '''
         send three config messages to setup car, racer, and camera
         '''
-
+        print('Sending configs...')
+        print('Sending racer info')
         # Racer info
         msg = {'msg_type': 'racer_info',
             'racer_name': self.gym_config['racer_name'],
@@ -117,6 +118,8 @@ class GymInterface(Component, SDClient):
         self.send_now(json.dumps(msg))
 
         time.sleep(1.0)
+
+        print('Sending car config')
         # Car config
         msg = { "msg_type" : "car_config", 
         "body_style" : self.gym_config['body_style'], 
