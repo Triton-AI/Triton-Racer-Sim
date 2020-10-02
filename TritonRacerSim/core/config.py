@@ -43,6 +43,7 @@ config = {
 
     # Joystick
     'joystick_type': 'ps4', # ps4 | xbox | g28 Wired joysticks recommended. ps4 joystick over bluetooth may end up with different joystick mappings. WIP.
+    'joystick_use_bluetooth': True, # For ps4 controller: is it connected via bluetooth or wire?
     'joystick_max_throttle': 1.0, # throttle limiter (0, 1]
     'joystick_max_steering': 1.0, # steering limiter (0, 1]
 

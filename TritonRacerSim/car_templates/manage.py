@@ -10,7 +10,7 @@ Usage:
 """
 
 import sys
-sys.path.append('/home/haoru/Projects/Triton-Racer-Sim/')
+sys.path.append('/home/haoru/projects/Triton-Racer-Sim/')
 from docopt import docopt
 from os import path
 from TritonRacerSim.core.car import Car
@@ -33,8 +33,6 @@ def assemble_car(cfg = {}, model_path = None):
     car = Car(loop_hz=20)
 
     from TritonRacerSim.components.controlmultiplexer import ControlMultiplexer
-    from TritonRacerSim.components.gyminterface import GymInterface
-    from TritonRacerSim.components.img_preprocessing import ImgPreprocessing
     from TritonRacerSim.components.datastorage import  DataStorage
     from TritonRacerSim.components.track_data_process import LocationTracker
     from TritonRacerSim.components.driver_assistance import DriverAssistance
@@ -63,6 +61,7 @@ def assemble_car(cfg = {}, model_path = None):
 
     # Interface with donkeygym, or real car electronics
     if cfg['i_am_on_simulator']:
+        from TritonRacerSim.components.gyminterface import GymInterface
         gym = GymInterface(poll_socket_sleep_time=0.01,gym_config=cfg)
         car.addComponent(gym)
     else:
@@ -72,6 +71,7 @@ def assemble_car(cfg = {}, model_path = None):
 
     #Image preprocessing
     if cfg['preprocessing_enabled']:
+        from TritonRacerSim.components.img_preprocessing import ImgPreprocessing
         preprocessing = ImgPreprocessing(cfg)
         car.addComponent(preprocessing)
 
@@ -138,3 +138,4 @@ if __name__ == '__main__':
         elif args['calibrate']:
             from TritonRacerSim.utils.calibrate import calibrate
             calibrate(cfg, args)
+
