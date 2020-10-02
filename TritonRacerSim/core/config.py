@@ -69,7 +69,7 @@ config = {
     # Speed-based control params (for speed control and full house models)
     'spd_ctl_threshold': 1.1, # Allow the model to overspeed. 1.1 means 10% above predicted speed.
     'spd_ctl_reverse': True, # Apply reverse throttle when overspeed, e.g. -0.4.
-    'spd_ctl_throttle_multiplier': 1.0, # How hard the car should reverse
+    'spd_ctl_reverse_multiplier': 1.0, # How hard the car should reverse
     'spd_ctl_break': True, # WARRNING: OVERWRITES REVERSE. Apply break when overspeed, e.g. 0.3. Break will OVERRIDE any throttle value.
     'spd_ctl_break_multiplier': 1.0, # How hard the car should break
     
@@ -91,8 +91,8 @@ config = {
     'sim_port': 9091,
     'sim_latency': 0,
     
-    'use_location_tracker': False, # Only for mountain track currently. Disable it when on other tracks.
-    'track_data_file': 'centerline.json',
+    'use_location_tracker': False, # Track which segment of track the car is on.
+    'track_data_file': 'track_data/generated_track.json',
 
     # Driver Assistance
     'drive_assist_enabled': False, # Drive assist for simulator. Not recommanded for real cars.
