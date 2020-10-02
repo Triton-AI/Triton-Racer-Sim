@@ -37,7 +37,6 @@ def assemble_car(cfg = {}, model_path = None):
     from TritonRacerSim.components.datastorage import  DataStorage
     from TritonRacerSim.components.track_data_process import LocationTracker
     from TritonRacerSim.components.driver_assistance import DriverAssistance
-    from TritonRacerSim.components.teensy import TeensyMC_Test
 
     # Autopilot
     if model_path is not None:
@@ -67,6 +66,7 @@ def assemble_car(cfg = {}, model_path = None):
         car.addComponent(gym)
     else:
         if cfg['sub_board_type'] == 'TEENSY':
+            from TritonRacerSim.components.teensy import TeensyMC_Test
             teensy = TeensyMC_Test(cfg)
             car.addComponent(teensy)
 
