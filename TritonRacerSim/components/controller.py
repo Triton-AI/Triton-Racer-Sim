@@ -33,6 +33,7 @@ class Controller(Component):
 PS4_CONFIG={'steering_axis': 0, 'throttle_axis': 4, 'break_axis': 5, 'toggle_mode_but': 8, 'del_record_but': 2, 'toggle_record_but': 1, 'reset_but': 3, 'has_break': True}
 G28_CONFIG={'steering_axis':0, 'throttle_axis': 2, 'break_axis' : 3,  'toggle_mode_but': 8, 'del_record_but': 2, 'toggle_record_but': 1, 'reset_but': 3, 'has_break': True}
 XBOX_CONFIG={'steering_axis': 0, 'throttle_axis': 4, 'break_axis': 5, 'toggle_mode_but': 6, 'del_record_but': 3, 'toggle_record_but': 1, 'reset_but': 2, 'has_break': True}
+PS4_BLUETOOTH_CONFIG={'steering_axis': 0, 'throttle_axis': 5, 'break_axis': 4, 'toggle_mode_but': 8, 'del_record_but': 2, 'toggle_record_but': 1, 'reset_but': 3, 'has_break': True}
 
 class PygameJoystick(Controller):
     def __init__(self, cfg):
@@ -50,7 +51,10 @@ class PygameJoystick(Controller):
         print(f'Joystick name: {self.joystick.get_name()}')
 
         if JoystickType(joystick_type) == JoystickType.PS4:
-            self.joystick_map = PS4_CONFIG
+            if not cfg['joystick_use_bluetooth']:
+                self.joystick_map = PS4_CONFIG
+            else:
+                self.joystick_map = PS4_BLUETOOTH_CONFIG
         elif JoystickType(joystick_type) == JoystickType.G28:
             self.joystick_map = G28_CONFIG
         elif JoystickType(joystick_type) == JoystickType.XBOX:
@@ -163,7 +167,8 @@ class G28DrivingWheel(PygameJoystick):
         if val < 0.01:
             val = 0.0
         return val
-
+    def getName(self):
+        return 'G28 Driving Wheel'
 
 
 class PS4Joystick(PygameJoystick):
@@ -171,7 +176,9 @@ class PS4Joystick(PygameJoystick):
         PygameJoystick.__init__(self, cfg)
 
     def map_steering(self, val):
-        return val
+        if self.cfg['joystick_use_bluetooth']:
+            return val * -1
+        else : return val
 
     def map_throttle(self, val):
         return val * -1
@@ -181,6 +188,10 @@ class PS4Joystick(PygameJoystick):
         if val < 0.2:
             val = 0.0
         return val
+
+    def getName(self):
+        return 'PS4 Joystick'   
+
 
 class XBOXJoystick(PygameJoystick):
     def __init__(self, cfg):
@@ -197,3 +208,6 @@ class XBOXJoystick(PygameJoystick):
         if val < 0.2:
             val = 0.0
         return val
+
+    def getName(self):
+        return 'XBox Joystick'

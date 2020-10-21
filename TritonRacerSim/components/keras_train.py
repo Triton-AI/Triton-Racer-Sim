@@ -207,31 +207,34 @@ class Keras_2D_FULL_HOUSE(Component):
 
 
         feature_inputs = Input(shape=(1,), name='feature_vec_input')
-        y = Dense(8, activation='relu', name='feature1')(feature_inputs)
-        y = Dense(16, activation='relu', name='feature2')(y)
-        y = Dense(32, activation='relu', name='feature3')(y)
+        y = Dense(16, activation='relu', name='feature1')(feature_inputs)
+        y = Dense(32, activation='relu', name='feature2')(y)
+        y = Dense(64, activation='relu', name='feature3')(y)
 
         x = Concatenate(axis=1)([x, y])
       
-        x = Flatten(name='flatten2')(x)
-        x = Dense(100, activation='relu', name = 'dense1')(x)
-        x = Dropout(drop)(x)
-        x = Dense(50, activation='relu', name = 'dense2')(x)
-        x = Dropout(drop)(x)      
-        x = Dense(25, activation='relu', name = 'dense3')(x)
-        x = Dropout(drop)(x)
+        z = Flatten(name='flatten2')(x)
+        z = Dense(100, activation='relu', name = 'dense1')(z)
+        z = Dropout(drop)(z)
+        z = Dense(50, activation='relu', name = 'dense2')(z)
+        z = Dropout(drop)(z)      
+        z = Dense(25, activation='relu', name = 'dense3')(z)
+        z = Dropout(drop)(z)
         
-        out_speed = Dense(1, activation='linear', name='output_speed')(x)
+        out_speed = Dense(1, activation='linear', name='output_speed')(z)
 
         current_spd_input = Input(shape=(1,), name='current_spd_input')
-        s = Dense(4, activation='relu', name='current_spd_1')(current_spd_input)
-        s = Dense(8, activation='relu', name='current_spd_2')(s)
-        s = Dense(16, activation='relu', name='current_spd_3')(s)
+        s = Dense(16, activation='relu', name='current_spd_1')(current_spd_input)
+        s = Dense(32, activation='relu', name='current_spd_2')(s)
+        s = Dense(64, activation='relu', name='current_spd_3')(s)
+        
         s = Concatenate(axis=1)([x,s])
-        s = Dense(50, activation='relu', name = 'dense4')(s)
+        s = Dense (100, activation='relu', name = 'dense4')(s)
+        s = Dropout(drop)(s)
+        s = Dense(50, activation='relu', name = 'dense5')(s)
         s = Dropout(drop)(s) 
-        x = Dense(25, activation='relu', name = 'dense5')(x)
-        x = Dropout(drop)(x)
+        s = Dense(25, activation='relu', name = 'dense6')(s)
+        s = Dropout(drop)(s)
 
         out_steering = Dense(1, activation='linear', name='out_steering')(s)
 

@@ -24,7 +24,7 @@ class TrackDataProcessor:
                 data = json.load(f)
                 f.close()
 
-                point = [data['pos/x'], data['pos/y'], data['pos/z']]
+                point = [data['gym/x'], data['gym/y'], data['gym/z']]
                 self.line.append(point)
 
                 i += 1

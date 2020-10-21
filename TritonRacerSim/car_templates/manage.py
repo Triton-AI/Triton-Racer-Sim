@@ -6,10 +6,12 @@ Usage:
     manage.py (train) (--tub=<tub1,tub2,..tubn>) (--model=<model>) [--transfer=<model>]
     manage.py (generateconfig)
     manage.py (postprocess) (--source=<original_data_folder>) (--destination=<processed_data_folder>)
+    manage.py (calibrate) [--steering] [--throttle] 
+    manage.py (processtrack) (--tub=<data_folder>) (--output=<track_json_file>)
 """
 
 import sys
-sys.path.append('/home/haoru/Projects/Triton-Racer-Sim/')
+sys.path.append('/home/haoru/projects/Triton-Racer-Sim/')
 from docopt import docopt
 from os import path
 from TritonRacerSim.core.car import Car
@@ -32,8 +34,6 @@ def assemble_car(cfg = {}, model_path = None):
     car = Car(loop_hz=20)
 
     from TritonRacerSim.components.controlmultiplexer import ControlMultiplexer
-    from TritonRacerSim.components.gyminterface import GymInterface
-    from TritonRacerSim.components.img_preprocessing import ImgPreprocessing
     from TritonRacerSim.components.datastorage import  DataStorage
     from TritonRacerSim.components.track_data_process import LocationTracker
     from TritonRacerSim.components.driver_assistance import DriverAssistance
@@ -59,12 +59,20 @@ def assemble_car(cfg = {}, model_path = None):
         assistant = DriverAssistance(cfg)
         car.addComponent(assistant)
 
-    # Interface with donkeygym
-    gym = GymInterface(poll_socket_sleep_time=0.01,gym_config=cfg)
-    car.addComponent(gym)
+    # Interface with donkeygym, or real car electronics
+    if cfg['i_am_on_simulator']:
+        from TritonRacerSim.components.gyminterface import GymInterface
+        gym = GymInterface(poll_socket_sleep_time=0.01,gym_config=cfg)
+        car.addComponent(gym)
+    else:
+        if cfg['sub_board_type'] == 'TEENSY':
+            from TritonRacerSim.components.teensy import TeensyMC_Test
+            teensy = TeensyMC_Test(cfg)
+            car.addComponent(teensy)
 
     #Image preprocessing
     if cfg['preprocessing_enabled']:
+        from TritonRacerSim.components.img_preprocessing import ImgPreprocessing
         preprocessing = ImgPreprocessing(cfg)
         car.addComponent(preprocessing)
 
@@ -93,6 +101,11 @@ if __name__ == '__main__':
     elif args['postprocess']:
         from TritonRacerSim.utils.post_process import post_process
         post_process(args['--source'], args['--destination'])
+
+    elif args['processtrack']:
+        from TritonRacerSim.components.track_data_process import TrackDataProcessor
+        processor = TrackDataProcessor(args['--tub'], args['--output'])
+        processor.process()
 
     else:
         from TritonRacerSim.core.config import read_config
@@ -127,3 +140,8 @@ if __name__ == '__main__':
             if (args['--transfer']):
                 transfer_path = args['--transfer']
             train(cfg, data_paths, model_path, transfer_path)
+
+        elif args['calibrate']:
+            from TritonRacerSim.utils.calibrate import calibrate
+            calibrate(cfg, args)
+

@@ -1,14 +1,17 @@
-from TritonRacerSim.components.component import Component
-from tensorflow.python.keras.models import load_model
+import time
+import os
+import queue
 from os import path
 import numpy as np
 from PIL import Image
 import tensorflow as tf
+
+from tensorflow.python.keras.models import load_model
+
+from TritonRacerSim.components.component import Component
 from TritonRacerSim.components.controller import DriveMode
 from TritonRacerSim.utils.types import ModelType
-import time
-import os
-import queue
+from TritonRacerSim.utils.mapping import calcBreak, calcThrottle
 
 
 class KerasPilot(Component):
@@ -25,9 +28,11 @@ class KerasPilot(Component):
         tf.keras.backend.set_learning_phase(0)
         self.on = True
 
-        self.speed_control_threshold = cfg['speed_control_threshold']
-        self.speed_control_reverse = cfg['speed_control_reverse']
-        self.speed_control_break = cfg['speed_control_break']
+        self.speed_control_threshold = cfg['spd_ctl_threshold']
+        self.speed_control_reverse = cfg['spd_ctl_reverse']
+        self.speed_control_break = cfg['spd_ctl_break']
+        self.speed_control_reverse_multiplier = cfg['spd_ctl_reverse_multiplier']
+        self.speed_control_break_multiplier = cfg['spd_ctl_break_multiplier']
 
         self.smooth_steering = cfg['smooth_steering_enabled']
         self.smooth_steering_threshold = cfg['smooth_steering_threshold']
@@ -53,49 +58,66 @@ class KerasPilot(Component):
                 # start_time = time.time()
                 steering_and_throttle = self.model(img_arr)
                 # print(f'Prediction time: {time.time() - start_time}')
-                steering = self.__cap(steering_and_throttle.numpy()[0][0])
-                throttle = self.__cap(steering_and_throttle.numpy()[0][1])
+                steering, throttle = self.__cap(steering_and_throttle.numpy()[0])
 
                 steering = self.__smooth_steering(steering)
 
                 return steering, throttle, 0.0
+
             elif self.model_type == ModelType.CNN_2D_SPD_FTR:
                 spd = np.asarray((args[1] / 20,), dtype=np.float32)
                 spd = spd.reshape((1,) + spd.shape) 
                 # print (img_arr.shape)
                 steering_and_throttle = self.model((img_arr, spd))
-                steering = self.__cap(steering_and_throttle.numpy()[0][0])
-                throttle = self.__cap(steering_and_throttle.numpy()[0][1])
+                steering, throttle = self.__cap(steering_and_throttle.numpy()[0])
 
                 steering = self.__smooth_steering(steering)
 
                 return steering, throttle, 0.0
+
             elif self.model_type == ModelType.CNN_2D_SPD_CTL:
                 # print (img_arr.shape)
+                real_spd = args[1]
                 steering_and_speed = self.model(img_arr)
                 steering = self.__cap(steering_and_speed.numpy()[0][0])
-                speed = steering_and_speed.numpy()[0][1] * 20
+                predicted_speed = steering_and_speed.numpy()[0][1] * 20
                 breaking = 0.0
-                if (speed * self.speed_control_threshold > args[1]): # Accelerate to match the predicted speed
-                    throttle = 1.0
-                else:
-                    throttle = self.speed_control_reverse # Decelerate to match the predicted speed
-                    breaking = self.speed_control_break
-                
+
+                throttle = calcThrottle(real_spd, predicted_speed * self.speed_control_threshold, self.speed_control_reverse_multiplier)
+
+                if self.speed_control_break:
+                    throttle = 1.0 if predicted_speed - real_spd > 0.0 else 0.0
+                    breaking = calcBreak(real_spd, predicted_speed * self.speed_control_threshold, self.speed_control_break_multiplier)
+                # print (f'Spd: {real_spd}, Pred: {predicted_speed} \r', end='')
+                print (f'Thr: {throttle}, Brk: {breaking} \r', end='')
                 steering = self.__smooth_steering(steering)
                 
                 return steering, throttle, breaking
+
             elif self.model_type == ModelType.CNN_2D_FULL_HOUSE:
                 # print (args[1], args[2], args[3])
-                spd = np.asarray(args[1]/20, dtype=np.float32)
+                real_spd = args[1]
+                spd = np.asarray(real_spd/20, dtype=np.float32)
                 spd = spd.reshape((1,) + spd.shape)
                 features = np.asarray((args[2],), dtype=np.float32)
                 features = features.reshape((1,) + features.shape)
                 steering_and_speed = self.model((img_arr, spd, features))
                 steering = self.__cap(steering_and_speed.numpy()[0][0])
-                speed = steering_and_speed.numpy()[0][1] * 20
+                predicted_speed = steering_and_speed.numpy()[0][1] * 20
                 breaking = 0.0
-                if (speed * self.speed_control_threshold > args[1]): # Accelerate to match the predicted speed
+                # print (f'Spd: {real_spd}, Pred: {predicted_speed} \r', end='')
+                throttle = calcThrottle(real_spd, predicted_speed * self.speed_control_threshold, self.speed_control_reverse_multiplier)
+
+                if self.speed_control_break:
+                    throttle = 1.0 if predicted_speed - real_spd > 0.0 else 0.0
+                    breaking = calcBreak(real_spd, predicted_speed * self.speed_control_threshold, self.speed_control_break_multiplier)
+               
+                print (f'Thr: {throttle}, Brk: {breaking} \r', end='')
+                steering = self.__smooth_steering(steering)
+                
+                return steering, throttle, breaking
+                '''
+                if (predicted_speed * self.speed_control_threshold > real_spd): # Accelerate to match the predicted speed
                     throttle = 1.0
                 else:
                     throttle = 0.0 # Decelerate to match the predicted speed
@@ -104,6 +126,7 @@ class KerasPilot(Component):
                 steering = self.__smooth_steering(steering)
 
                 return steering, throttle, breaking
+                '''
         return 0.0, 0.0, 0.0
 
     def onStart(self):
