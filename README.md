@@ -21,18 +21,31 @@ Config added. Use `python manage.py generateconfig` to create one.
 
 ## Install
 
-### Set up Environment
+**Installing on a laptop/desktop/server: follow host setup and repo download.**
+
+**Installing on a Jetson series SBC: follow Jetson setup and repo download.**
+
+### Set up Environment on Host Windows / Ubuntu / MacOS
 1. Install [miniconda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html)
 2. `conda create -n tritonracer python=3.8`
 3. `conda activate tritonracer`
 4. `pip install docopt pyserial tensorflow==2.3.0 pillow keras==2.3.0 opencv-python pygame==2.0.0.dev10`
 5. `conda install scikit-learn`
-6. Setup [donkey gym](http://docs.donkeycar.com/guide/simulator/#install) in this environment (omit `conda activate donkey` in the original installation procedure)
+6. If you are going to use donkey simulator: set up [donkey gym](http://docs.donkeycar.com/guide/simulator/#install) in this environment (omit `conda activate donkey` in the original installation procedure)
     1. If you have a donkeycar installation with donkey gym setup, navigate to the donkey gym repository. If not, find a suitable place and `git clone https://github.com/tawnkramer/gym-donkeycar`
     2. Make sure you are still in tritonracer environment `conda activate tritonracer`
     3. `pip install -e .[gym-donkeycar]`
 
-### Download TritonRacer Repo
+### Set up Environment on Nvidia Jetson series
+1. Check python3 version to be 3.6-3.8 `python3 --version`. If not, install and update python3.
+2. Install virtualenv `sudo apt-get install virtualenv`
+3. Create a new environment `python3 -m virtualenv -p python3 tritonracer`
+4. Invoke tritonracer environment `source ~/tritonracer/bin/activate`
+4. Install [tensorflow for Jetson](https://docs.nvidia.com/deeplearning/frameworks/install-tf-jetson-platform/index.html)
+5. Install dependencies `pip install docopt pyserial pillow keras pygame`
+6. More on the hardware setup later.
+
+### Download TritonRacer Repo (Both Host PCs and Jetson)
 1. `git clone https://github.com/Triton-AI/Triton-Racer-Sim`
 2. Copy `Triton-Racer-Sim/TritonRacerSim/car_templates/` folder to somewhere outside the repository (and optionally rename it). This is your car folder, like "d3" of donkeycar.
 3. **IMPORTANT:** Go to your car folder, open manage.py and edit line 11 to be your path to the Triton-Racer-Sim repo in your system `sys.path.append('/home/haoru/Projects/Triton-Racer-Sim/')`
@@ -101,7 +114,7 @@ RAM usage (120 * 160 image, 7000 Records): 8GB
 
 VRAM usage (120 * 160 image, 128 batch size): 3GB
 
-**IMPORTANT** If you run into insufficient memory issue, follow [this](https://linuxize.com/post/how-to-add-swap-space-on-ubuntu-18-04/) guide to pre-allocate space for Ubuntu swap file (Allocate more than the size of your physical RAM). Windows users, click [here](https://answers.microsoft.com/en-us/windows/forum/windows_10-performance/how-to-increase-virtual-memory-in-windows-10-a/46dacaf5-15cf-4f5d-9d5a-cba1401ae4c9). Your system may stall momentarily duing training in the first two epoches.
+**IMPORTANT** If you run into insufficient memory issue, follow [this](https://linuxize.com/post/how-to-add-swap-space-on-ubuntu-18-04/) guide to pre-allocate space for Ubuntu swap file (Allocate more than the size of your physical RAM). Windows users, click [here](https://answers.microsoft.com/en-us/windows/forum/windows_10-performance/how-to-increase-virtual-memory-in-windows-10-a/46dacaf5-15cf-4f5d-9d5a-cba1401ae4c9). If you do this, your system may stall momentarily duing training in the first two epoches, but that's still better than the training getting killed.
 
 
 #### Model Types

@@ -5,13 +5,13 @@ Usage:
     manage.py (drive) [--model=<model>]
     manage.py (train) (--tub=<tub1,tub2,..tubn>) (--model=<model>) [--transfer=<model>]
     manage.py (generateconfig)
-    manage.py (postprocess) (--source=<original_data_folder>) (--destination=<processed_data_folder>)
+    manage.py (postprocess) (--source=<original_data_folder>) (--destination=<processed_data_folder>) [--filter] [--latency]
     manage.py (calibrate) [--steering] [--throttle] 
     manage.py (processtrack) (--tub=<data_folder>) (--output=<track_json_file>)
 """
 
 import sys
-sys.path.append('/home/haoru/projects/Triton-Racer-Sim/')
+sys.path.append('/home/haoru/Projects/TR/Triton-Racer-Sim/')
 from docopt import docopt
 from os import path
 from TritonRacerSim.core.car import Car
@@ -69,6 +69,10 @@ def assemble_car(cfg = {}, model_path = None):
             from TritonRacerSim.components.teensy import TeensyMC_Test
             teensy = TeensyMC_Test(cfg)
             car.addComponent(teensy)
+        
+        from TritonRacerSim.components.camera import Camera
+        cam = Camera(cfg)
+        car.addComponent(cam)
 
     #Image preprocessing
     if cfg['preprocessing_enabled']:
@@ -97,10 +101,6 @@ if __name__ == '__main__':
     if args['generateconfig']:
         from TritonRacerSim.core.config import generate_config
         generate_config('./myconfig.json')
-
-    elif args['postprocess']:
-        from TritonRacerSim.utils.post_process import post_process
-        post_process(args['--source'], args['--destination'])
 
     elif args['processtrack']:
         from TritonRacerSim.components.track_data_process import TrackDataProcessor
@@ -145,3 +145,11 @@ if __name__ == '__main__':
             from TritonRacerSim.utils.calibrate import calibrate
             calibrate(cfg, args)
 
+        elif args['postprocess']:
+            if args['--filter']:
+                from TritonRacerSim.utils.post_process import post_process
+                post_process(args['--source'], args['--destination'], cfg)
+
+            elif args['--latency']:
+                from TritonRacerSim.utils.post_process import shift_latency
+                shift_latency(args['--source'], args['--destination'])

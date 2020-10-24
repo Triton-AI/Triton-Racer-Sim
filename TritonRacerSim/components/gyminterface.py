@@ -20,9 +20,7 @@ DEFAULT_GYM_CONFIG = {
     "guid": "comeondowntosouthparkandmeetsomefriendsofmine",
 
     'body_style' : 'car01', 
-    'body_r' : 24, 
-    'body_g' : 43, 
-    'body_b' : 73, 
+    'body_rgb': (24, 43, 73),
     'car_name' : 'Trident',
     'font_size' : 50,
 
@@ -57,6 +55,7 @@ class GymInterface(Component, SDClient):
         self.send_config()
         self.last_image = None
         self.car_loaded = False
+        self.latency = self.gym_config['sim_latency']
 
         self.pos_x = 0.0
         self.pos_y = 0.0
@@ -76,6 +75,8 @@ class GymInterface(Component, SDClient):
 
         return self.last_image, self.pos_x, self.pos_y, self.pos_z, self.speed, self.cte
 
+    def onStart(self):
+        print(f'CAUTION: Confirm your artificial latency setting: {self.latency}ms.')
 
     def onShutdown(self):
         self.stop()
@@ -123,9 +124,9 @@ class GymInterface(Component, SDClient):
         # Car config
         msg = { "msg_type" : "car_config", 
         "body_style" : self.gym_config['body_style'], 
-        "body_r" : self.gym_config['body_r'].__str__(), 
-        "body_g" : self.gym_config['body_g'].__str__(), 
-        "body_b" : self.gym_config['body_b'].__str__(), 
+        "body_r" : self.gym_config['body_rgb'][0].__str__(), 
+        "body_g" : self.gym_config['body_rgb'][1].__str__(), 
+        "body_b" : self.gym_config['body_rgb'][2].__str__(), 
         "car_name" : self.gym_config['car_name'], 
         "font_size" : self.gym_config['font_size'].__str__() }
         self.send_now(json.dumps(msg))

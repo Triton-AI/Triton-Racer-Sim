@@ -34,6 +34,8 @@ PS4_CONFIG={'steering_axis': 0, 'throttle_axis': 4, 'break_axis': 5, 'toggle_mod
 G28_CONFIG={'steering_axis':0, 'throttle_axis': 2, 'break_axis' : 3,  'toggle_mode_but': 8, 'del_record_but': 2, 'toggle_record_but': 1, 'reset_but': 3, 'has_break': True}
 XBOX_CONFIG={'steering_axis': 0, 'throttle_axis': 4, 'break_axis': 5, 'toggle_mode_but': 6, 'del_record_but': 3, 'toggle_record_but': 1, 'reset_but': 2, 'has_break': True}
 PS4_BLUETOOTH_CONFIG={'steering_axis': 0, 'throttle_axis': 5, 'break_axis': 4, 'toggle_mode_but': 8, 'del_record_but': 2, 'toggle_record_but': 1, 'reset_but': 3, 'has_break': True}
+STEAM_CONFIG={'steering_axis': 0, 'throttle_axis': 1, 'break_axis': 2, 'toggle_mode_but': 6, 'del_record_but': 2, 'toggle_record_but': 1, 'reset_but': 3, 'has_break': True}
+SWITCH_CONFIG={'steering_axis': 0, 'throttle_axis': 3, 'break_axis': 2, 'toggle_mode_but': 13, 'del_record_but': 0, 'toggle_record_but': 1, 'reset_but': 3, 'has_break': False}
 
 class PygameJoystick(Controller):
     def __init__(self, cfg):
@@ -211,3 +213,29 @@ class XBOXJoystick(PygameJoystick):
 
     def getName(self):
         return 'XBox Joystick'
+
+class STEAMJoystick(PygameJoystick):
+    def __init__(self, cfg):
+        PygameJoystick.__init__(self, cfg)
+
+    def map_steering(self, val):
+        return val
+
+    def map_throttle(self, val):
+        return val * -1
+
+    def map_break(self, val):
+        val = (val + 1) / 2
+        if val < 0.2:
+            val = 0.0
+        return val
+
+    def getName(self):
+        return 'Steam Joystick'
+
+class DummyJoystick(Controller):
+    def step(self, *args):
+        return 0.0, 0.0, 0.0, DriveMode.HUMAN, False, False, False
+
+    def getName(self):
+        return 'Dummy Joystick'

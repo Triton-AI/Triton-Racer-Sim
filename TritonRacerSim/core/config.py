@@ -45,7 +45,7 @@ config = {
     'teensy_poll_interval': 25, # ms between each polling
 
     # Joystick
-    'joystick_type': 'ps4', # ps4 | xbox | g28 Wired joysticks recommended. ps4 joystick over bluetooth may end up with different joystick mappings. WIP.
+    'joystick_type': 'ps4', # [ ps4 | xbox | g28 | steam | switch ] Wired joysticks recommended.
     'joystick_use_bluetooth': False, # For ps4 controller: is it connected via bluetooth or wire?
     'joystick_max_throttle': 1.0, # throttle limiter (0, 1]
     'joystick_max_steering': 1.0, # steering limiter (0, 1]
@@ -73,7 +73,7 @@ config = {
     'spd_ctl_threshold': 1.1, # Allow the model to overspeed. 1.1 means 10% above predicted speed.
     'spd_ctl_reverse': True, # Apply reverse throttle when overspeed, e.g. -0.4.
     'spd_ctl_reverse_multiplier': 1.0, # How hard the car should reverse
-    'spd_ctl_break': True, # WARRNING: OVERWRITES REVERSE. Apply break when overspeed, e.g. 0.3. Break will OVERRIDE any throttle value.
+    'spd_ctl_break': False, # WARRNING: OVERWRITES REVERSE. Apply break when overspeed, e.g. 0.3. Break will OVERRIDE any throttle value.
     'spd_ctl_break_multiplier': 1.0, # How hard the car should break
     
     # Simulator
