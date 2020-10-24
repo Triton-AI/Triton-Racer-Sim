@@ -19,14 +19,16 @@ from TritonRacerSim.core.datapool import DataPool
 from TritonRacerSim.utils.types import ModelType
 
 def get_joystick_by_name(joystick_name):
-    from TritonRacerSim.components.controller import JoystickType, G28DrivingWheel, PS4Joystick, XBOXJoystick
-    joysitck_type = JoystickType(joystick_name)
-    if joysitck_type == JoystickType.PS4:
+    from TritonRacerSim.components.controller import JoystickType, G28DrivingWheel, PS4Joystick, XBOXJoystick, SWITCHJoystick
+    joystick_type = JoystickType(joystick_name)
+    if joystick_type == JoystickType.PS4:
         return PS4Joystick(cfg)
-    elif joysitck_type == JoystickType.G28:
+    elif joystick_type == JoystickType.G28:
         return G28DrivingWheel(cfg)
-    elif joysitck_type == JoystickType.XBOX:
+    elif joystick_type == JoystickType.XBOX:
         return XBOXJoystick(cfg)
+    elif joystick_type == JoystickType.SWITCH:
+        return  SWITCHJoystick(cfg)
     else:
         raise Exception(f'Unsupported joystick type: {joysitck_type}. Could be still under development.')
 

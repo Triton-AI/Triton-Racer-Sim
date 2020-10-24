@@ -14,6 +14,8 @@ class JoystickType(Enum):
     PS3 = 'ps3'
     XBOX = 'xbox'
     G28 = 'g28'
+    SWITCH = 'switch'
+    STEAM = 'steam'
 
 class Controller(Component):
     '''Generic base class for controllers'''
@@ -61,6 +63,8 @@ class PygameJoystick(Controller):
             self.joystick_map = G28_CONFIG
         elif JoystickType(joystick_type) == JoystickType.XBOX:
             self.joystick_map = XBOX_CONFIG
+        elif JoystickType(joystick_type) == JoystickType.SWITCH:
+            self.joystick_map = SWITCH_CONFIG
         else:
              raise Exception('Unsupported joystick')
 
@@ -232,6 +236,25 @@ class STEAMJoystick(PygameJoystick):
 
     def getName(self):
         return 'Steam Joystick'
+
+class SWITCHJoystick(PygameJoystick):
+    def __init__(self, cfg):
+        PygameJoystick.__init__(self, cfg)
+
+    def map_steering(self, val):
+        return val
+
+    def map_throttle(self, val):
+        return val * -1
+
+    def map_break(self, val):
+        val = (val + 1) / 2
+        if val < 0.2:
+            val = 0.0
+        return val
+
+    def getName(self):
+        return 'Switch Joystick'
 
 class DummyJoystick(Controller):
     def step(self, *args):
