@@ -16,7 +16,7 @@ class JoystickType(Enum):
     G28 = 'g28'
     SWITCH = 'switch'
     STEAM = 'steam'
-    F710 - 'f710'
+    F710 = 'f710'
 
 class Controller(Component):
     '''Generic base class for controllers'''
