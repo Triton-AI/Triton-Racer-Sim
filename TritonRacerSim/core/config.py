@@ -28,7 +28,7 @@ config = {
     'preprocessing_edge_detection_destination_channel': 2, # Which channel to put the filtered layer? 0 | 1 | 2 for RGB image
 
     # On-board Electronics
-    'sub_board_type': 'PCA9685', # PCA9685 | TEENSY | GPIO # Who is responsible for sending PWM signals to the motor and servo?
+    'sub_board_type': 'PCA9685', # PCA9685 | TEENSY | ESP32 # Who is responsible for sending PWM signals to the motor and servo?
     'calibrate_max_forward_pwm': 400,
     'calibrate_zero_throttle_pwm': 370,
     'calibrate_max_reverse_pwm': 330,
@@ -43,6 +43,9 @@ config = {
     'teensy_baudrate': 115200,
     'teensy_watchdog_trigger_time': 100, # ms before the watchdog kicks in and shut down the system
     'teensy_poll_interval': 25, # ms between each polling
+
+    'ESP_ip': '193.168.1.233',
+    'ESP_port': 9093,
 
     # Joystick
     'joystick_type': 'ps4', # [ ps4 | xbox | g28 | steam | switch ] Wired joysticks recommended.

@@ -16,6 +16,7 @@ class JoystickType(Enum):
     G28 = 'g28'
     SWITCH = 'switch'
     STEAM = 'steam'
+    F710 - 'f710'
 
 class Controller(Component):
     '''Generic base class for controllers'''
@@ -38,6 +39,7 @@ XBOX_CONFIG={'steering_axis': 0, 'throttle_axis': 4, 'break_axis': 5, 'toggle_mo
 PS4_BLUETOOTH_CONFIG={'steering_axis': 0, 'throttle_axis': 5, 'break_axis': 4, 'toggle_mode_but': 8, 'del_record_but': 2, 'toggle_record_but': 1, 'reset_but': 3, 'has_break': True}
 STEAM_CONFIG={'steering_axis': 0, 'throttle_axis': 1, 'break_axis': 2, 'toggle_mode_but': 6, 'del_record_but': 2, 'toggle_record_but': 1, 'reset_but': 3, 'has_break': True}
 SWITCH_CONFIG={'steering_axis': 0, 'throttle_axis': 3, 'break_axis': 2, 'toggle_mode_but': 13, 'del_record_but': 0, 'toggle_record_but': 1, 'reset_but': 3, 'has_break': False}
+F710_CONFIG={'steering_axis': 0, 'throttle_axis': 4, 'break_axis': 5, 'toggle_mode_but': 6, 'del_record_but': 3, 'toggle_record_but': 1, 'reset_but': 2, 'has_break': True}
 
 class PygameJoystick(Controller):
     def __init__(self, cfg):
@@ -65,6 +67,8 @@ class PygameJoystick(Controller):
             self.joystick_map = XBOX_CONFIG
         elif JoystickType(joystick_type) == JoystickType.SWITCH:
             self.joystick_map = SWITCH_CONFIG
+        elif JoystickType(joystick_type) == JoystickType.F710:
+            self.joystick_map = F710_CONFIG        
         else:
              raise Exception('Unsupported joystick')
 
@@ -262,3 +266,22 @@ class DummyJoystick(Controller):
 
     def getName(self):
         return 'Dummy Joystick'
+
+class F710Joystick(PygameJoystick):
+    def __init__(self, cfg):
+        PygameJoystick.__init__(self, cfg)
+
+    def map_steering(self, val):
+        return val
+
+    def map_throttle(self, val):
+        return val * -1
+
+    def map_break(self, val):
+        val = (val + 1) / 2
+        if val < 0.2:
+            val = 0.0
+        return val
+
+    def getName(self):
+        return 'F710 Joystick'

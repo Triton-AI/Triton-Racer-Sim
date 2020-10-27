@@ -2,7 +2,7 @@
 Scripts to drive a triton racer car
 
 Usage:
-    manage.py (drive) [--model=<model>]
+    manage.py (drive) [--model=<model>] [--dummy]
     manage.py (train) (--tub=<tub1,tub2,..tubn>) (--model=<model>) [--transfer=<model>]
     manage.py (generateconfig)
     manage.py (postprocess) (--source=<original_data_folder>) (--destination=<processed_data_folder>) [--filter] [--latency]
@@ -19,7 +19,7 @@ from TritonRacerSim.core.datapool import DataPool
 from TritonRacerSim.utils.types import ModelType
 
 def get_joystick_by_name(joystick_name):
-    from TritonRacerSim.components.controller import JoystickType, G28DrivingWheel, PS4Joystick, XBOXJoystick, SWITCHJoystick
+    from TritonRacerSim.components.controller import JoystickType, G28DrivingWheel, PS4Joystick, XBOXJoystick, SWITCHJoystick, F710Joystick
     joystick_type = JoystickType(joystick_name)
     if joystick_type == JoystickType.PS4:
         return PS4Joystick(cfg)
@@ -29,10 +29,12 @@ def get_joystick_by_name(joystick_name):
         return XBOXJoystick(cfg)
     elif joystick_type == JoystickType.SWITCH:
         return  SWITCHJoystick(cfg)
+    elif joystick_type == JoystickType.F710:
+        return F710Joystick(cfg)
     else:
-        raise Exception(f'Unsupported joystick type: {joysitck_type}. Could be still under development.')
+        raise Exception(f'Unsupported joystick type: {joystick_type}. Could be still under development.')
 
-def assemble_car(cfg = {}, model_path = None):
+def assemble_car(cfg = {}, args = {}, model_path = None):
     car = Car(loop_hz=20)
 
     from TritonRacerSim.components.controlmultiplexer import ControlMultiplexer
@@ -49,8 +51,13 @@ def assemble_car(cfg = {}, model_path = None):
         car.addComponent(pilot)
 
     # Joystick
-    joystick = get_joystick_by_name(cfg['joystick_type'])
-    car.addComponent(joystick)
+    if not args['--dummy']:
+        joystick = get_joystick_by_name(cfg['joystick_type'])
+        car.addComponent(joystick)
+    else:
+        from TritonRacerSim.components.controller import DummyJoystick
+        joystick = DummyJoystick(cfg)
+        car.addComponent(joystick)
 
     # Control Signal Multiplexer
     mux = ControlMultiplexer(cfg)
@@ -71,10 +78,14 @@ def assemble_car(cfg = {}, model_path = None):
             from TritonRacerSim.components.teensy import TeensyMC_Test
             teensy = TeensyMC_Test(cfg)
             car.addComponent(teensy)
-        
-        from TritonRacerSim.components.camera import Camera
-        cam = Camera(cfg)
-        car.addComponent(cam)
+        elif cfg['sub_board_type'] == 'ESP32':
+            from TritonRacerSim.components.esp32_cam import ESP32CAM
+            esp = ESP32CAM(cfg)
+            car.addComponent(esp)
+        if cfg['cam_type'] == 'WEBCAM':
+            from TritonRacerSim.components.camera import Camera
+            cam = Camera(cfg)
+            car.addComponent(cam)
 
     #Image preprocessing
     if cfg['preprocessing_enabled']:
@@ -124,9 +135,9 @@ if __name__ == '__main__':
             model_path =None
             if args['--model']:
                 model_path = path.abspath(args['--model'])
-                assemble_car(cfg, model_path).start()
+                assemble_car(cfg, args, model_path).start()
             else:
-                assemble_car(cfg).start()
+                assemble_car(cfg, args).start()
 
         elif args['train']:
             tub = args['--tub']
