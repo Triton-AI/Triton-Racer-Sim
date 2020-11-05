@@ -40,6 +40,7 @@ class ControlMultiplexer(Component):
             toReturn = toReturn[0], self.throttle_lock_value, toReturn[2]
 
         self.last_mode = args[0]
+        #print(toReturn)
         return toReturn
 
     def getName(self):

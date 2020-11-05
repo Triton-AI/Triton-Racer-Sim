@@ -1,6 +1,10 @@
+from typing import List
 import pygame
 import time
 import os
+import json
+
+from pygame import joystick
 from TritonRacerSim.components.component import Component
 from enum import Enum
 
@@ -17,6 +21,7 @@ class JoystickType(Enum):
     SWITCH = 'switch'
     STEAM = 'steam'
     F710 = 'f710'
+    CUSTOM = 'custom'
 
 class Controller(Component):
     '''Generic base class for controllers'''
@@ -68,7 +73,9 @@ class PygameJoystick(Controller):
         elif JoystickType(joystick_type) == JoystickType.SWITCH:
             self.joystick_map = SWITCH_CONFIG
         elif JoystickType(joystick_type) == JoystickType.F710:
-            self.joystick_map = F710_CONFIG        
+            self.joystick_map = F710_CONFIG       
+        elif JoystickType(joystick_type) == JoystickType.CUSTOM:  
+            self.joystick_map = self.__load_joystick_config(cfg['joystick_custom_mapping_file'])
         else:
              raise Exception('Unsupported joystick')
 
@@ -140,6 +147,11 @@ class PygameJoystick(Controller):
 
     def __limit_val(self, val, limit):
         return val * limit
+
+    def __load_joystick_config(file):
+        with open(file, 'r') as input:
+            config = json.load(input)
+        return config
 
     def limit_throttle(self, val):
         return self.__limit_val(val, self.cfg['joystick_max_throttle'])
@@ -285,3 +297,160 @@ class F710Joystick(PygameJoystick):
 
     def getName(self):
         return 'F710 Joystick'
+
+class CustomJoystickCreator:
+    '''Class for creating custom pygame joystick mapping'''
+    def __init__(self):
+        self.config = {'steering_axis': 0, 'throttle_axis': 4, 
+        'break_axis': 5, 'toggle_mode_but': 8, 
+        'del_record_but': 2, 'toggle_record_but': 1, 
+        'reset_but': 3, 'has_break': True,
+        'reverse_steering': False, 'reverse_throttle': True,
+        'idle_break': -1.0, 'max_break': 1.0
+        }
+        self.js=None
+
+    def create(self):
+        print("""This custom joystick wizard will assist you in creating your custom joystick
+        Please connect your joystick, and hit ENTER to continue...""")
+        input()
+        self.js = self.select_joystick()
+        print("""Hit ENTER to continue...""")
+        input()
+        str_axis, str_reversed, neutral, max = self.get_max_axis("Pick an axis for steering (cannot be trigger), and pull to FULL LEFT.")
+        thr_axis, thr_reversed, neutral, max = self.get_max_axis("Good. Now pick an axis for throttle (cannot be trigger), and pull to FULL FORWARD.")
+        print("""Nice. Do you want to map another axis for break?
+        You do not need to if you do not have enough axies
+        y/[n]: """)
+        respond = input
+        if respond.lower() == "y":
+            has_break = True
+            brk_axis, brk_reversed, brk_neutral, brk_max = self.get_max_axis("Nice. Now pick an axis (trigger maybe) for break.")
+        else:
+            has_break = False
+            brk_axis = 0; brk_reversed = 0; brk_neutral = 0.0; brk_max = 0.0
+        print("""Good job. Now the buttons.""")
+        toggle_mode = self.get_pressed_button("toggling driving mode")
+        del_record = self.get_pressed_button("deleting records")
+        toggle_record = self.get_pressed_button("toggling recording")
+        reset = self.get_pressed_button("resetting the car")
+
+        config = {'steering_axis': str_axis, 'throttle_axis': thr_axis, 
+        'break_axis': brk_axis, 'toggle_mode_but': toggle_mode, 
+        'del_record_but': del_record, 'toggle_record_but': toggle_record, 
+        'reset_but': reset, 'has_break': has_break,
+        'reverse_steering': str_reversed, 'reverse_throttle': thr_reversed,
+        'idle_break': brk_neutral, 'max_break': brk_max
+        }
+
+        file_name = "custom_joystick.json"
+        self.write_config(config, file_name)
+        print(f"""Custom joystick has been generated and saved in {file_name}.
+        Please change joystick_type to \"custom\" to use it.""")
+
+    def select_joystick(self) -> pygame.joystick.Joystick:
+        pygame.init()
+        pygame.joystick.init()
+        js_count = pygame.joystick.get_count()
+        print (f"Total number of visible joystick by PyGame: {js_count}")
+        js_idx = int(input("Please enter the index of joystick you wish to use (starting from 0): "))
+        js = pygame.joystick.Joystick(js_idx)
+        js.init()
+        print(f"Joystick {js_idx} has been selected.")
+        return js
+
+    def dump_joystick(self, js) -> str:
+        '''Dump the status of a joystick'''
+        js.init()
+        dump = ""
+
+        name = js.get_name()
+        dump += f"Joystick Name: {name}\n"
+
+        axes = js.get_numaxes()
+        for i in range(axes):
+            axis_val = js.get_axis(i)
+            dump += f"Axis {i}: {axis_val}\n"
+
+        dump += "\n"
+
+        buttons = js.get_numbuttons()
+        for i in range(buttons):
+            button_val = js.get_button(i)
+            dump += f"Button {i}: {button_val}\n"
+
+        dump += "\n"
+
+        hats = js.get_numhats()
+        for i in range(hats):
+            hat = js.get_hat(i)
+            dump += f"Hat {i}: {str(hat)}\n"
+        return dump
+
+    def get_max_axis(self, prompt) -> tuple:
+        """Return which axis was pulled, whether it was reversed, and the neutral max."""
+        print("""First, put your hand off the joystick. 
+        Press ENTER to continue...""")
+        input()
+        neutral_axes = self.get_all_axes()
+        while True:
+            print(f"""{prompt}
+            Hit ENTER while doing so...""")
+            input()
+            moved_axes = self.get_all_axes()
+            from operator import sub
+            delta = list(map(sub, neutral_axes, moved_axes))
+            abs_delta = list(map(abs, delta))
+            moved_axis = abs_delta.index(max(abs_delta))
+            if abs_delta[moved_axis] > 0.5:
+                reversed = True if moved_axes[moved_axis] < 0 else False
+                return moved_axis, reversed, neutral_axes[moved_axes], moved_axes[moved_axis]
+            else:
+                print("I cannot tell which axis was moved. Try again.")
+
+    def get_all_axes(self) -> list:
+        axes = []
+        for i in range(self.js.get_numaxes()):
+            axes.append(self.js.get_axis(i))
+        print(axes)
+        return axes
+
+    def get_pressed_button(self, button_prompt: str) -> int:
+        buttons = self.js.get_numbuttons()
+        while True():
+            print(f"Hold the button for {button_prompt}.")
+            print("Hit ENTER to continue...")
+            input()
+            for i in range(buttons):
+                button_val = self.js.get_button(i)
+                if button_val == 1: return i
+            print("No button press was detected. Please hold the button and try again.")
+
+    def write_config(self, config, file_name):
+        with open(file_name, 'w') as output:
+            json.dump(config, output)
+
+
+class CustomJoystick(PygameJoystick):
+    def __init__(self, cfg):
+        PygameJoystick.__init__(self, cfg)
+        self.str_rev = self.joystick_map['reverse_steering']
+        self.thr_rev = self.joystick_map['reverse_throttle']
+        self.brk_idle = self.joystick_map['idle_break']
+        self.brk_max = self.joystick_map['max_break']
+        self.brk_range = abs(self.brk_max - self.brk_idle)
+
+    def map_steering(self, val):
+        return val * -1.0 if self.str_rev else val
+
+    def map_throttle(self, val):
+        return val * -1.0 if self.thr_rev else val
+
+    def map_break(self, val):
+        if abs(val - self.brk_idle) < 0.15:
+            return 0.0
+        else:
+            return abs(val - self.brk_idle) / self.brk_range
+
+    def getName(self):
+        return 'Custom Joystick'

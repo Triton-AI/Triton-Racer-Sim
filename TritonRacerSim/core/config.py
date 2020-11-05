@@ -48,10 +48,11 @@ config = {
     'ESP_port': 9093,
 
     # Joystick
-    'joystick_type': 'ps4', # [ ps4 | xbox | g28 | steam | switch ] Wired joysticks recommended.
+    'joystick_type': 'ps4', # [ ps4 | xbox | g28 | steam | switch | custom] Wired joysticks recommended.
     'joystick_use_bluetooth': False, # For ps4 controller: is it connected via bluetooth or wire?
     'joystick_max_throttle': 1.0, # throttle limiter (0, 1]
     'joystick_max_steering': 1.0, # steering limiter (0, 1]
+    'joystick_custom_mapping_file': "custom_joystick.json",
 
     # AI boost
     'ai_launch_boost_throttle_enabled': False, # Lock throttle when switching from ai-steering to full-ai mode
@@ -71,6 +72,7 @@ config = {
     'early_stop_patience': 5,
     'max_epoch': 100, # Max epoch to train
     'batch_size': 64, # Lower it to save GPU resources, or increase it to experdite training.
+    'from_donkey': False,
 
     # Speed-based control params (for speed control and full house models)
     'spd_ctl_threshold': 1.1, # Allow the model to overspeed. 1.1 means 10% above predicted speed.

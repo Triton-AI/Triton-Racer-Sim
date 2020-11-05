@@ -6,20 +6,22 @@ Usage:
     manage.py (train) (--tub=<tub1,tub2,..tubn>) (--model=<model>) [--transfer=<model>]
     manage.py (generateconfig)
     manage.py (postprocess) (--source=<original_data_folder>) (--destination=<processed_data_folder>) [--filter] [--latency]
-    manage.py (calibrate) [--steering] [--throttle] 
+    manage.py (calibrate) [--steering] [--throttle]
     manage.py (processtrack) (--tub=<data_folder>) (--output=<track_json_file>)
+    manage.py (joystick) [--dump]
 """
 
 import sys
 sys.path.append('/home/haoru/Projects/TR/Triton-Racer-Sim/')
 from docopt import docopt
 from os import path
+import time
 from TritonRacerSim.core.car import Car
 from TritonRacerSim.core.datapool import DataPool
 from TritonRacerSim.utils.types import ModelType
 
 def get_joystick_by_name(joystick_name):
-    from TritonRacerSim.components.controller import JoystickType, G28DrivingWheel, PS4Joystick, XBOXJoystick, SWITCHJoystick, F710Joystick
+    from TritonRacerSim.components.controller import JoystickType, G28DrivingWheel, PS4Joystick, XBOXJoystick, SWITCHJoystick, F710Joystick, CustomJoystick
     joystick_type = JoystickType(joystick_name)
     if joystick_type == JoystickType.PS4:
         return PS4Joystick(cfg)
@@ -31,6 +33,8 @@ def get_joystick_by_name(joystick_name):
         return  SWITCHJoystick(cfg)
     elif joystick_type == JoystickType.F710:
         return F710Joystick(cfg)
+    elif joystick_type == JoystickType.CUSTOM:
+        return CustomJoystick(cfg)
     else:
         raise Exception(f'Unsupported joystick type: {joystick_type}. Could be still under development.')
 
@@ -166,3 +170,14 @@ if __name__ == '__main__':
             elif args['--latency']:
                 from TritonRacerSim.utils.post_process import shift_latency
                 shift_latency(args['--source'], args['--destination'])
+
+        elif args['joystick']:
+            from TritonRacerSim.components.controller import CustomJoystickCreator
+            creator = CustomJoystickCreator()
+            if args['--dump']:
+                creator.js = creator.select_joystick()
+                while True:
+                    print(f"{creator.dump_joystick(creator.js)}\r",end="")
+                    time.sleep(0.02)
+            else:
+                creator.create()
