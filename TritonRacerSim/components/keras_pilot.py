@@ -37,6 +37,7 @@ class KerasPilot(Component):
         self.smooth_steering = cfg['smooth_steering_enabled']
         self.smooth_steering_threshold = cfg['smooth_steering_threshold']
         self.from_donkey = cfg['from_donkey']
+        self.thr_ctl_multiplier = cfg['thr_ctl_multiplier']
 
         if self.smooth_steering:
             print('[WARNING] Smooth-Steering Enabled')
@@ -63,7 +64,7 @@ class KerasPilot(Component):
                     steering, throttle = self.__cap(steering_and_throttle.numpy()[0])
                 else:
                     steering = self.__cap(steering_and_throttle[0].numpy()[0][0])
-                    throttle = self.__cap(steering_and_throttle[1].numpy()[0][0])
+                    throttle = self.__cap(steering_and_throttle[1].numpy()[0][0]) * self.thr_ctl_multiplier
 
                 #steering = self.__smooth_steering(steering)
                 print (f'Str: {steering}, Thr: {throttle} \r', end='')

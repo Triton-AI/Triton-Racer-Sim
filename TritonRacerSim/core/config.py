@@ -66,6 +66,8 @@ config = {
     'smooth_steering_enabled': False, # Consider all AI steerings above the threshold a full steering (1.0 or -1.0)
     'smooth_steering_threshold': 0.9,
 
+    'thr_ctl_multiplier': 1.0,
+
     # Training
     'model_type': 'cnn_2d_speed_control', # cnn_2d | cnn_2d_speed_as_feature | cnn_2d_speed_control | cnn_2d_full_house
     'early_stop': True, # Early stop when training hasn't made any progress within the patience
