@@ -27,7 +27,7 @@ class Controller(Component):
     '''Generic base class for controllers'''
     def __init__(self, cfg):
         Component.__init__(self, threaded=True, outputs=['usr/steering', 'usr/throttle', 'usr/breaking', 'usr/mode', 'usr/del_record', 'usr/toggle_record', 'usr/reset'])
-        self.mode = DriveMode.HUMAN
+        self.mode = DriveMode(cfg['default_drive_mode'])
         self.del_record = False
         self.toggle_record = False
         self.reset = False
@@ -49,7 +49,7 @@ F710_CONFIG={'steering_axis': 0, 'throttle_axis': 4, 'break_axis': 5, 'toggle_mo
 class PygameJoystick(Controller):
     def __init__(self, cfg):
         Controller.__init__(self, cfg)
-        joystick_type = cfg['joystick_type']
+        joystick_type = cfg['type']
         os.environ["SDL_VIDEODRIVER"] = "dummy"
         pygame.init()
         pygame.joystick.init()
@@ -62,7 +62,7 @@ class PygameJoystick(Controller):
         print(f'Joystick name: {self.joystick.get_name()}')
 
         if JoystickType(joystick_type) == JoystickType.PS4:
-            if not cfg['joystick_use_bluetooth']:
+            if not cfg['use_bluetooth']:
                 self.joystick_map = PS4_CONFIG
             else:
                 self.joystick_map = PS4_BLUETOOTH_CONFIG
@@ -75,7 +75,7 @@ class PygameJoystick(Controller):
         elif JoystickType(joystick_type) == JoystickType.F710:
             self.joystick_map = F710_CONFIG       
         elif JoystickType(joystick_type) == JoystickType.CUSTOM:  
-            self.joystick_map = self.__load_joystick_config(cfg['joystick_custom_mapping_file'])
+            self.joystick_map = self.__load_joystick_config(cfg['custom_mapping_file'])
         else:
              raise Exception('Unsupported joystick')
 
@@ -198,7 +198,7 @@ class PS4Joystick(PygameJoystick):
         PygameJoystick.__init__(self, cfg)
 
     def map_steering(self, val):
-        if self.cfg['joystick_use_bluetooth']:
+        if self.cfg['use_bluetooth']:
             return val * -1
         else : return val
 

@@ -7,17 +7,21 @@ class ControlMultiplexer(Component):
     '''Switch user or ai control based on mode. also controls ai launch'''
     def __init__(self, cfg={}):
         Component.__init__(self, inputs=['usr/mode', 'usr/steering', 'usr/throttle', 'usr/breaking', 'ai/steering', 'ai/throttle', 'ai/breaking'], outputs=['mux/steering', 'mux/throttle', 'mux/breaking'])
+        boost_cfg = cfg['ai_boost']
+        
         self.last_mode = DriveMode.HUMAN
         
+        thr_lock_cfg = boost_cfg['launch_throttle_lock']
         self.throttle_lock_active = False
-        self.throttle_lock_enabled = cfg['ai_launch_boost_throttle_enabled']
-        self.throttle_lock_value = cfg['ai_launch_boost_throttle_value']
-        self.throttle_lock_duration = cfg['ai_launch_boost_throttle_duration']
+        self.throttle_lock_enabled = thr_lock_cfg['enabled']
+        self.throttle_lock_value = thr_lock_cfg['value']
+        self.throttle_lock_duration = thr_lock_cfg['duration']
 
+        str_lock_cfg = boost_cfg['launch_steering_lock']
         self.steering_lock_active = False
-        self.steering_lock_enabled = cfg['ai_launch_lock_steering_enabled']
-        self.steering_lock_value = cfg['ai_launch_lock_steering_value']
-        self.steering_lock_duration = cfg['ai_launch_lock_steering_duration']
+        self.steering_lock_enabled = str_lock_cfg['enabled']
+        self.steering_lock_value = str_lock_cfg['value']
+        self.steering_lock_duration = str_lock_cfg['duration']
 
 
 

@@ -1,0 +1,117 @@
+{
+    "explanation": "model_type: cnn_2d | cnn_2d_speed_as_feature | cnn_2d_speed_control | cnn_2d_full_house; joystick_type: ps4 | xbox | g28; sim_host: use 127.0.0.1 for local; track_data_file: used for position tracker to segment the track\n    ",
+    "cam_type": "WEBCAM",
+    "img_w": 160,
+    "img_h": 120,
+    "image_format": "rgb",
+    "cam_source": 0,
+    "cam_resolution": [
+        320,
+        240
+    ],
+    "preprocessing_enabled": false,
+    "preprocessing_preview_enabled": true,
+    "preproceessing_keep_original": false,
+    "preprocessing_contrast_enhancement_ratio": 1.0,
+    "preprocessing_contrast_enhancement_offset": 125,
+    "preprocessing_dynamic_brightness_enabled": false,
+    "preprocessing_brightness_baseline": 550,
+    "preprocessing_color_filter_enabled": false,
+    "preprocessing_color_filter_hsvs": [
+        [
+            [
+                0,
+                0,
+                130
+            ],
+            [
+                180,
+                64,
+                255
+            ]
+        ],
+        [
+            [
+                25,
+                180,
+                155
+            ],
+            [
+                43,
+                255,
+                255
+            ]
+        ]
+    ],
+    "preprocessing_color_filter_destination_channels": [
+        0,
+        1
+    ],
+    "preprocessing_edge_detection_enabled": false,
+    "preprocessing_edge_detection_threshold_a": 60,
+    "preprocessing_edge_detection_threshold_b": 100,
+    "preprocessing_edge_detection_destination_channel": 2,
+    "sub_board_type": "PCA9685",
+    "calibrate_max_forward_pwm": 400,
+    "calibrate_zero_throttle_pwm": 370,
+    "calibrate_max_reverse_pwm": 330,
+    "calibrate_max_left_pwm": 430,
+    "calibrate_max_right_pwm": 300,
+    "calibrate_neutral_steering_pwm": 350,
+    "PCA9685_esc_channel": 1,
+    "PCA9685_servo_channel": 2,
+    "teensy_port": "/dev/ttyACM0",
+    "teensy_baudrate": 115200,
+    "teensy_watchdog_trigger_time": 100,
+    "teensy_poll_interval": 25,
+    "ESP_ip": "193.168.1.233",
+    "ESP_port": 9093,
+    "joystick_type": "ps4",
+    "joystick_use_bluetooth": false,
+    "joystick_max_throttle": 1.0,
+    "joystick_max_steering": 1.0,
+    "joystick_custom_mapping_file": "custom_joystick.json",
+    "ai_launch_boost_throttle_enabled": false,
+    "ai_launch_boost_throttle_value": 1.0,
+    "ai_launch_boost_throttle_duration": 5,
+    "ai_launch_lock_steering_enabled": false,
+    "ai_launch_lock_steering_value": 0.0,
+    "ai_launch_lock_steering_duration": 3,
+    "smooth_steering_enabled": false,
+    "smooth_steering_threshold": 0.9,
+    "model_type": "cnn_2d",
+    "early_stop": true,
+    "early_stop_patience": 5,
+    "max_epoch": 100,
+    "batch_size": 64,
+    "from_donkey": true,
+    "spd_ctl_threshold": 1.1,
+    "spd_ctl_reverse": true,
+    "spd_ctl_reverse_multiplier": 1.0,
+    "spd_ctl_break": false,
+    "spd_ctl_break_multiplier": 1.0,
+    "i_am_on_simulator": true,
+    "car_name": "TritonRacer",
+    "font_size": 50,
+    "racer_name": "Triton AI",
+    "bio": "Something",
+    "country": "US",
+    "body_style": "car01",
+    "body_rgb": [
+        24,
+        43,
+        73
+    ],
+    "guid": "15ca3fc8-1f93-11eb-bf1d-2cf05d3eecee",
+    "donkey_sim_full_path": "remote",
+    "scene_name": "generated_track",
+    "sim_path": "remote",
+    "sim_host": "127.0.0.1",
+    "sim_port": 9091,
+    "sim_latency": 0,
+    "use_location_tracker": false,
+    "track_data_file": "track_data/generated_track.json",
+    "drive_assist_enabled": false,
+    "drive_assist_limit_mode": "steering",
+    "drive_assist_limit_k": 5
+}

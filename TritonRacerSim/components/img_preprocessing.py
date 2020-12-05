@@ -13,7 +13,10 @@ class ImgPreprocessing(Component):
         self.to_process_img = None
         self.processed_img = None
         self.cfg = cfg
-
+        self.contrast = cfg['contrast_enhancement']
+        self.dy_bright = cfg['dynamic_brightness']
+        self.color = cfg['color_filter']
+        self.edge = cfg['edge_detection']
 
     def step(self, *args):
         img_arr = args[0]
@@ -30,8 +33,8 @@ class ImgPreprocessing(Component):
             self.to_process_img = None
             img = self.__process(img)
             self.processed_img = img
-            if self.cfg['preprocessing_preview_enabled']:
-                cv2.imshow("Img Preprocessing", cv2.cvtColor(self.processed_img,cv2.COLOR_RGB2BGR))
+            if self.cfg['preview_enabled']:
+                cv2.imshow("Image Preprocessing Preview", cv2.cvtColor(self.processed_img,cv2.COLOR_RGB2BGR))
                 cv2.waitKey(1)           
 
     def __process(self, img):
@@ -40,15 +43,15 @@ class ImgPreprocessing(Component):
         merge_instruction=[]
 
         img = self.__trim_brightness_contrast(img)
-        if self.cfg['preprocessing_color_filter_enabled']:
+        if self.color['enabled']:
             color_filtered_layers = self.__color_filter(img)
             #print(img.shape)
             layers.extend(color_filtered_layers)
-            merge_instruction.extend(self.cfg['preprocessing_color_filter_destination_channels'])
-        if self.cfg['preprocessing_edge_detection_enabled']:
+            merge_instruction.extend(self.color['destination_channels'])
+        if self.edge['enabled']:
             edge_filtered_layer = self.__edge_detection(img)
             layers.append(edge_filtered_layer)
-            merge_instruction.append(self.cfg['preprocessing_edge_detection_destination_channel'])
+            merge_instruction.append(self.edge['destination_channel'])
 
         self.__merge(merge_instruction, img, layers)
         return img
@@ -64,41 +67,43 @@ class ImgPreprocessing(Component):
 
     def __color_filter(self, img):
         hsv_img = cv2.cvtColor(img.copy(),cv2.COLOR_RGB2HSV)
-        bounds = self.cfg['preprocessing_color_filter_hsvs']
+        upper_bounds = self.color['hsv_upper_bounds']
+        lower_bounds = self.color['hsv_lower_bounds']
         output_layers = []
 
-        for bound in bounds:
-            mask = cv2.inRange(hsv_img, tuple(bound[0]), tuple(bound[1]))
+        for i in range(len(upper_bounds)):
+            mask = cv2.inRange(hsv_img, tuple(lower_bounds[i]), tuple(upper_bounds[i]))
             output_layers.append(mask)
 
         return output_layers
 
     def __edge_detection(self, img):
-        threshold_a = self.cfg['preprocessing_edge_detection_threshold_a']
-        threshold_b = self.cfg['preprocessing_edge_detection_threshold_b']
+        threshold_a = self.edge['threshold_a']
+        threshold_b = self.edge['threshold_b']
         return cv2.Canny(img, threshold_a, threshold_b)
 
     def __trim_brightness_contrast(self, img):
         #mean = cv2.mean(img[40:119,:,:])
         #multiplier = target_brightness / sum(list(mean))
-        contrast = self.cfg['preprocessing_contrast_enhancement_ratio']
-        offset = self.cfg['preprocessing_contrast_enhancement_offset']
-        brightness_baseline = self.cfg['preprocessing_brightness_baseline']
+        dy_bright_enabled = self.dy_bright['enabled']
+        contrast_enabled = self.contrast['enabled']
 
-        current_brightness = sum(list(cv2.mean(img[40:119,:,:])))
-        delta = (brightness_baseline - current_brightness) / 3
+        if dy_bright_enabled or contrast_enabled:
+            img_arr = img.astype(np.float32)
+            if dy_bright_enabled:
+                current_brightness = sum(list(cv2.mean(img[40:119,:,:])))
+                brightness_baseline = self.dy_bright['baseline']
+                delta = (brightness_baseline - current_brightness) / 3
+                img_arr += delta
+            if contrast_enabled:
+                contrast = self.contrast['ratio']
+                offset = self.contrast['offset']
+                img_arr -= offset
+                img_arr *= contrast
+                img_arr += offset
+            img_arr = np.clip(img_arr, 0, 255)
+            img = img_arr.astype(np.uint8)
 
-
-        img_arr = img.astype(np.float32)
-        if self.cfg['preprocessing_dynamic_brightness_enabled']:
-            img_arr += delta
-        img_arr -= offset
-        img_arr *= contrast
-        img_arr += offset
-        img_arr = np.clip(img_arr, 0, 255)
-        img = img_arr.astype(np.uint8)
-        # print(f'{sum(list(mean))}\r', end="")
-        # print(sum(list(cv2.mean(cv2.absdiff(img, new_img)))))
         return img
 
     def onShutdown(self):

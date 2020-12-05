@@ -7,8 +7,8 @@ class DriverAssistance (Component):
     def __init__(self, cfg):
         super().__init__(inputs=['mux/steering', 'mux/throttle', 'mux/break', 'gym/speed'],
                          outputs=['mux/steering', 'mux/throttle', 'mux/break'], threaded=False)
-        self.limit_mode = cfg['drive_assist_limit_mode']
-        self.k = cfg['drive_assist_limit_k']
+        self.limit_mode = cfg['limit_mode']
+        self.k = cfg['limit_k']
 
     def step(self, *args):
         steering, throttle, breaking, speed = args

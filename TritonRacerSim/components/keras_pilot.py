@@ -21,23 +21,28 @@ class KerasPilot(Component):
         self.model_type = model_type
         if model_type == ModelType.CNN_2D:
             pass
-
+        if cfg['img_preprocessing']['enabled']:
+            self.step_inputs[0] = 'cam/processed_img'
         Component.__init__(self, inputs=inputs, outputs=outputs, threaded=False)
         self.model = load_model(model_path, compile=True)
         self.model.summary()
         tf.keras.backend.set_learning_phase(0)
         self.on = True
 
-        self.speed_control_threshold = cfg['spd_ctl_threshold']
-        self.speed_control_reverse = cfg['spd_ctl_reverse']
-        self.speed_control_break = cfg['spd_ctl_break']
-        self.speed_control_reverse_multiplier = cfg['spd_ctl_reverse_multiplier']
-        self.speed_control_break_multiplier = cfg['spd_ctl_break_multiplier']
+        spd_cfg = cfg['speed_control']
+        self.speed_control_threshold = spd_cfg['threshold']
+        self.speed_control_reverse = spd_cfg['reverse']
+        self.speed_control_break = spd_cfg['break']
+        self.speed_control_reverse_multiplier = spd_cfg['reverse_multiplier']
+        self.speed_control_break_multiplier = spd_cfg['break_multiplier']
 
-        self.smooth_steering = cfg['smooth_steering_enabled']
-        self.smooth_steering_threshold = cfg['smooth_steering_threshold']
-        self.from_donkey = cfg['from_donkey']
-        self.thr_ctl_multiplier = cfg['thr_ctl_multiplier']
+        smooth_cfg = cfg['ai_boost']['smooth_steering']
+        self.smooth_steering = smooth_cfg['enabled']
+        self.smooth_steering_threshold = smooth_cfg['threshold']
+        self.thr_ctl_multiplier = smooth_cfg['thr_ctl_multiplier']
+
+        model_cfg = cfg['ai_model']
+        self.from_donkey = model_cfg['from_donkey']
 
         if self.smooth_steering:
             print('[WARNING] Smooth-Steering Enabled')
@@ -137,7 +142,7 @@ class KerasPilot(Component):
         return 0.0, 0.0, 0.0
 
     def onStart(self):
-        if self.cfg['preprocessing_enabled']:
+        if self.cfg['img_preprocessing']['enabled']:
             print('[WARNING] Image preprocessing is enabled. Autopilot is fed with FILTERED image.')
 
     def onShutdown(self):

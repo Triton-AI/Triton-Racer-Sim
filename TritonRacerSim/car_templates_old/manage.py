@@ -55,7 +55,7 @@ def assemble_car(cfg = {}, args = {}, model_path = None):
     # Joystick
     js_cfg = cfg['joystick']
     if not args['--dummy']:
-        joystick = get_joystick_by_name(js_cfg['type'], js_cfg)
+        joystick = get_joystick_by_name(js_cfg['type'])
         car.addComponent(joystick)
     else:
         from TritonRacerSim.components.controller import DummyJoystick
@@ -129,9 +129,8 @@ def assemble_car(cfg = {}, args = {}, model_path = None):
 if __name__ == '__main__':
     args = docopt(__doc__)
     if args['generateconfig']:
-        #from TritonRacerSim.core.config import generate_config
-        #generate_config('./myconfig.json')
-        print('\"manage.py generateconfig\" has been depreciated! You will find a \"myconfig.yaml\" in your car folder instead.')
+        from TritonRacerSim.core.config import generate_config
+        generate_config('./myconfig.json')
 
     elif args['processtrack']:
         from TritonRacerSim.components.track_data_process import TrackDataProcessor

@@ -38,30 +38,52 @@ DEFAULT_GYM_CONFIG = {
     # "rot_y": 180,
 
     'scene_name': 'generated_track',
-    'sim_host': '127.0.0.1',
+    'host': '127.0.0.1',
     # 'sim_host':'donkey-sim.roboticist.dev',
-    'sim_port': 9091,
-    'sim_latency': 0
+    'port': 9091,
+    'artificial_latency': 0
+}
+
+DEFAULT_LIDAR_CONFIG = {
+    "degPerSweepInc" : "2", 
+    "degAngDown" : "0", 
+    "degAngDelta" : "-1.0", 
+    "numSweepsLevels" : "1", 
+    "maxRange" : "50.0", 
+    "noise" : "0.4", 
+    "offset_x" : "0.0", 
+    "offset_y" : "0.5", 
+    "offset_z" : "0.5", 
+    "rot_x" : "0.0" 
 }
 
 class GymInterface(Component, SDClient):
     '''Talking to the donkey gym'''
     def __init__(self, poll_socket_sleep_time=0.01, gym_config = DEFAULT_GYM_CONFIG):
         self.gym_config = DEFAULT_GYM_CONFIG
-        self.gym_config.update(gym_config)
-        Component.__init__(self, inputs=['mux/steering', 'mux/throttle', 'mux/breaking', 'usr/reset'], outputs=['cam/img', 'gym/x', 'gym/y', 'gym/z', 'gym/speed', 'gym/cte'], threaded=False)
-        SDClient.__init__(self, self.gym_config['sim_host'], self.gym_config['sim_port'], poll_socket_sleep_time=poll_socket_sleep_time)
+        connection_config = gym_config['local_connection'] if gym_config['default_connection'] == 'local' else gym_config['remote_connection']
+        self.gym_config.update(gym_config['car'])
+        self.gym_config.update(connection_config)
+
+        self.deg_inc = gym_config['lidar']['deg_inc']
+        self.max_range = gym_config['lidar']['max_range']
+        DEFAULT_LIDAR_CONFIG['degPerSweepInc'] = str(self.deg_inc)
+        DEFAULT_LIDAR_CONFIG['maxRange'] = str(self.max_range)
+
+        Component.__init__(self, inputs=['mux/steering', 'mux/throttle', 'mux/breaking', 'usr/reset'], outputs=['cam/img', 'gym/x', 'gym/y', 'gym/z', 'gym/speed', 'gym/cte', 'gym/lidar'], threaded=False)
+        SDClient.__init__(self, self.gym_config['host'], self.gym_config['port'], poll_socket_sleep_time=poll_socket_sleep_time)
         self.load_scene(self.gym_config['scene_name'])
         self.send_config()
         self.last_image = None
         self.car_loaded = False
-        self.latency = self.gym_config['sim_latency']
+        self.latency = self.gym_config['artificial_latency']
 
         self.pos_x = 0.0
         self.pos_y = 0.0
         self.pos_z = 0.0
         self.speed = 0.0
         self.cte = 0.0
+        self.lidar = None
     
     def step(self, *args):
         steering = args[0]
@@ -73,7 +95,7 @@ class GymInterface(Component, SDClient):
         if reset:
             self.reset_car()
 
-        return self.last_image, self.pos_x, self.pos_y, self.pos_z, self.speed, self.cte
+        return self.last_image, self.pos_x, self.pos_y, self.pos_z, self.speed, self.cte, self.lidar
 
     def onStart(self):
         print(f'CAUTION: Confirm your artificial latency setting: {self.latency}ms.')
@@ -93,7 +115,7 @@ class GymInterface(Component, SDClient):
             self.car_loaded = True
         
         elif json_packet['msg_type'] == "telemetry":
-            time.sleep(self.gym_config['sim_latency'] / 1000.0) # 1000 for ms -> s
+            time.sleep(self.gym_config['artificial_latency'] / 1000.0) # 1000 for ms -> s
             imgString = json_packet["image"]
             image = Image.open(BytesIO(base64.b64decode(imgString)))
             self.last_image = np.asarray(image, dtype=np.uint8)
@@ -102,6 +124,9 @@ class GymInterface(Component, SDClient):
             self.pos_z = float(json_packet['pos_z'])
             self.speed = float(json_packet['speed'])
             self.cte = float(json_packet['cte'])
+
+            if "lidar" in json_packet:
+                self.lidar = json_packet["lidar"]
 
     def send_config(self):
         '''
@@ -151,6 +176,13 @@ class GymInterface(Component, SDClient):
         self.send_now(json.dumps(msg))
         '''
         print (f"Gym Interface: Camera resolution ({self.gym_config['img_w']}, {self.gym_config['img_h']}).")
+
+        print('Sending LiDAR config')
+        msg = {'msg_type':"lidar_config"}
+        msg.update(DEFAULT_LIDAR_CONFIG)
+        self.send_now(json.dumps(msg))
+
+
         
 
     def send_controls(self, steering, throttle, breaking):

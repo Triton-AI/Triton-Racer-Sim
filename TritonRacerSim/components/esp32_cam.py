@@ -12,16 +12,19 @@ from gym_donkeycar.core.sim_client import SDClient
 
 class ESP32CAM(Component, SDClient):
     def __init__(self, cfg):
+
+        esp_cfg = cfg['esp32']
+        calibrate_cfg = cfg['calibration']
         Component.__init__(self, inputs=['mux/steering', 'mux/throttle', 'mux/break'], outputs=['cam/img'], threaded=True)
-        SDClient.__init__(self, cfg['ESP_ip'], cfg['ESP_port'], poll_socket_sleep_time=0.025)
+        SDClient.__init__(self, esp_cfg['ip'], esp_cfg['port'], poll_socket_sleep_time=0.025)
         self.running = True
 
-        self.left_pulse = cfg['calibrate_max_left_pwm']
-        self.right_pulse = cfg['calibrate_max_right_pwm']
-        self.neutral_steering_pulse = cfg['calibrate_neutral_steering_pwm']
-        self.max_pulse = cfg['calibrate_max_forward_pwm']
-        self.min_pulse = cfg['calibrate_max_reverse_pwm']
-        self.zero_pulse = cfg['calibrate_zero_throttle_pwm']
+        self.left_pulse = calibrate_cfg['max_left_pwm']
+        self.right_pulse = calibrate_cfg['max_right_pwm']
+        self.neutral_steering_pulse = calibrate_cfg['neutral_steering_pwm']
+        self.max_pulse = calibrate_cfg['max_forward_pwm']
+        self.min_pulse = calibrate_cfg['max_reverse_pwm']
+        self.zero_pulse = calibrate_cfg['zero_throttle_pwm']
 
     def onStart(self):
         '''

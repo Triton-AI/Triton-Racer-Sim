@@ -1,5 +1,9 @@
+"""DEPRECIATED""" # Please use config.yaml.
+
 import json
 import uuid
+import yaml
+
 config = {
     'explanation': '''model_type: cnn_2d | cnn_2d_speed_as_feature | cnn_2d_speed_control | cnn_2d_full_house; joystick_type: ps4 | xbox | g28; sim_host: use 127.0.0.1 for local; track_data_file: used for position tracker to segment the track
     ''',
@@ -120,3 +124,11 @@ def generate_config(config_path):
     config['guid'] = uuid.uuid1().__str__()
     with open(config_path, 'w') as config_file:
         json.dump(config, config_file, indent=4)
+
+def read_yaml_config(config_path):
+    with open(config_path, "r") as config_file:
+        config = yaml.load(config_file)
+    return config
+
+def generate_yaml_config(config_path):
+    pass

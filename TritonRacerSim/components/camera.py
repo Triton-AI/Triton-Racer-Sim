@@ -10,12 +10,12 @@ class Camera(Component):
         super().__init__(inputs=[], outputs=['cam/img', ], threaded=True)
         self.img_w = cfg['img_w']
         self.img_h = cfg['img_h']
-        self.image_format = cfg['image_format']
+        self.image_format = cfg['img_format']
         pygame.init()
         camera.init()
         cameras = camera.list_cameras()
-        print ("Using camera %s ..." % cameras[cfg['cam_source']])
-        self.webcam = camera.Camera(cameras[cfg['cam_source']], cfg['cam_resolution'])
+        print ("Using camera %s ..." % cameras[cfg['idx']])
+        self.webcam = camera.Camera(cameras[cfg['idx']], cfg['native_resolution'])
         self.processed_frame = None
         self.on = True
 

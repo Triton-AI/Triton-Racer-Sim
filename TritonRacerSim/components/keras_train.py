@@ -9,7 +9,7 @@ import os
 
 import tensorflow as tf
 from tensorflow.keras.layers.experimental.preprocessing import Rescaling
-from tensorflow.keras.layers import Input, Conv2D, Dense, Dropout, Flatten, Concatenate
+from tensorflow.keras.layers import Input, Conv2D, Dense, Dropout, Flatten, Concatenate, MaxPooling2D
 from tensorflow.keras import optimizers, losses
 from tensorflow.keras.models import Model
 from tensorflow.python.keras.models import load_model
@@ -377,12 +377,13 @@ def train(cfg, data_paths, model_path, transfer_path=None):
     physical_devices = tf.config.list_physical_devices('GPU')
     if physical_devices:
         tf.config.experimental.set_memory_growth(physical_devices[0], True)
-
+    model_cfg = cfg['ai_model']
+    cam_cfg = cfg['cam']
     loader = None
     model = None
 
-    model_type = ModelType(cfg['model_type'])
-    input_shape = (cfg['img_h'], cfg['img_w'], 3)
+    model_type = ModelType(model_cfg['model_type'])
+    input_shape = (cam_cfg['img_h'], cam_cfg['img_w'], 3)
 
     if model_type == ModelType.CNN_2D:
         loader = DataLoader(*data_paths)
@@ -399,7 +400,7 @@ def train(cfg, data_paths, model_path, transfer_path=None):
 
     if transfer_path is not None:
         model = load_model(transfer_path)
-    loader.load(batch_size=cfg['batch_size'])
+    loader.load(batch_size=model_cfg['batch_size'])
     model.summary()
     model.compile(optimizer=optimizers.Adam(lr=0.001), loss='mse')
 
@@ -408,9 +409,9 @@ def train(cfg, data_paths, model_path, transfer_path=None):
     ]
 
     if cfg['early_stop']:
-        callbacks.append(tf.keras.callbacks.EarlyStopping(patience=cfg['early_stop_patience']))
+        callbacks.append(tf.keras.callbacks.EarlyStopping(patience=model_cfg['early_stop_patience']))
 
-    model.fit(loader.train_dataset_batch, epochs=cfg['max_epoch'], validation_data=loader.val_dataset_batch, callbacks=callbacks)
+    model.fit(loader.train_dataset_batch, epochs=model_cfg['max_epoch'], validation_data=loader.val_dataset_batch, callbacks=callbacks)
     print(f'Finished training. Best model saved to {model_path}.')
     # model.save(model_path)
 

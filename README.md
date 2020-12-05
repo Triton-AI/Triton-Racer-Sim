@@ -8,7 +8,7 @@ The project is inspired by, and has taken reference from [donkeycar](https://www
 ## Progress
 Driving and training pipeline is up and running.
 
-Config added. Use `python manage.py generateconfig` to create one.
+LiDAR added in dev branch
 
 ## Features
 * Speed-based models
@@ -55,9 +55,8 @@ Config added. Use `python manage.py generateconfig` to create one.
 Creation of car instances will be supported later.
 
 ### Config File
-`python manage.py generateconfig` will create a myconfig.json under the car_template. 
 
-**For detailed information about what each setting does: check out `TritonRacerSim/core/config.py` for detailed explanations.**
+Now the `car_templates` folder comes with a `myconfig.yaml`. `manage.py generateconfig` has been depreciated.
 
 ### Drive the Car
 
@@ -146,9 +145,9 @@ How to write your custom component for tritonracer:
 
 ## Roadmap
 Features to come:
-1. 3D covolution networks
+1. RNN & LSTM
 2. Reinforcement learning
-3. Migration to real car
+3. ~~Migration to real car~~
 4. ~~Image filtering~~
 5. Packaging the software
 6. Merging with donkeycar

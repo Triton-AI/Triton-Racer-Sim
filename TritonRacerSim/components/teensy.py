@@ -37,11 +37,13 @@ class TeensyMC_Test(Component):
     def __init__(self, cfg):
         # Params for tweaking
         super().__init__(inputs=['mux/steering', 'mux/throttle'], outputs=[], threaded=True)
-        self.timeout = cfg['teensy_watchdog_trigger_time']  # ms before watchdog kicks in
-        self.pollInterval = cfg['teensy_poll_interval']  # ms between each polling
+        teensy_cfg = cfg['teensy']
+        calibrate_cfg = cfg['calibration']
+        self.timeout = teensy_cfg['watchdog_trigger_time']  # ms before watchdog kicks in
+        self.pollInterval = teensy_cfg['poll_interval']  # ms between each polling
 
         self.running = True
-        self.ser = serial.Serial(port=cfg['teensy_port'], baudrate=cfg['teensy_baudrate'])
+        self.ser = serial.Serial(port=teensy_cfg['port'], baudrate=teensy_cfg['baudrate'])
         self.mode = DriveMode.HUMAN
 
         self.watchdog_subthread = Watchdog(threshold=self.timeout, callback=self.watchdog_alert_subthread)
@@ -50,12 +52,12 @@ class TeensyMC_Test(Component):
         self.throttle = 0.0
         self.steering = 0.0
 
-        self.left_pulse = cfg['calibrate_max_left_pwm']
-        self.right_pulse = cfg['calibrate_max_right_pwm']
-        self.neutral_steering_pulse = cfg['calibrate_neutral_steering_pwm']
-        self.max_pulse = cfg['calibrate_max_forward_pwm']
-        self.min_pulse = cfg['calibrate_max_reverse_pwm']
-        self.zero_pulse = cfg['calibrate_zero_throttle_pwm']
+        self.left_pulse = calibrate_cfg['max_left_pwm']
+        self.right_pulse = calibrate_cfg['max_right_pwm']
+        self.neutral_steering_pulse = calibrate_cfg['neutral_steering_pwm']
+        self.max_pulse = calibrate_cfg['max_forward_pwm']
+        self.min_pulse = calibrate_cfg['max_reverse_pwm']
+        self.zero_pulse = calibrate_cfg['zero_throttle_pwm']
 
 
     def onStart(self):

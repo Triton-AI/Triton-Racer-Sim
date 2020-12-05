@@ -2,9 +2,9 @@ def calibrate(cfg, args):
     board = cfg['sub_board_type']
     print(f'Calibrating {board}')
     if board == 'PCA9685':
-        calibrate_pca9685(cfg, args)
+        calibrate_pca9685(cfg['PCA9685'], args)
     elif board == 'TEENSY':
-        calibrate_teensy(cfg, args)
+        calibrate_teensy(cfg['teensy'], args)
     else: raise Exception(f'Unknown board type {board}')   
 
 def calibrate_pca9685(cfg, args):
@@ -19,7 +19,7 @@ def calibrate_teensy(cfg, args):
         whatToCalibrate = 'Throttle'
     else: raise Exception(f'Please specify which control to calibrate (python manage.py calibrate steering / throttle).')
 
-    ser = serial.Serial(port=cfg['teensy_port'], baudrate=cfg['teensy_baudrate'])
+    ser = serial.Serial(port=cfg['port'], baudrate=cfg['baudrate'])
 
     while True:
         pwm = ask_for_pwm()
