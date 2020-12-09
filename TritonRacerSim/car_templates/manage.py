@@ -39,7 +39,7 @@ def get_joystick_by_name(joystick_name, js_cfg):
         raise Exception(f'Unsupported joystick type: {joystick_type}. Could be still under development.')
 
 def assemble_car(cfg = {}, args = {}, model_path = None):
-    car = Car(loop_hz=20)
+    car = Car(loop_hz=cfg['loop_hz'])
 
     from TritonRacerSim.components.controlmultiplexer import ControlMultiplexer
     from TritonRacerSim.components.datastorage import  DataStorage
@@ -78,7 +78,7 @@ def assemble_car(cfg = {}, args = {}, model_path = None):
         gym = GymInterface(poll_socket_sleep_time=0.01,gym_config=cfg['simulator'])
         car.addComponent(gym)
     else:
-        sub_board = cfg['sub_board_type']
+        sub_board = cfg['electronics']['sub_board_type']
         if sub_board == 'PCA9685':
             pass #TODO
         if sub_board == 'TEENSY':
@@ -91,7 +91,7 @@ def assemble_car(cfg = {}, args = {}, model_path = None):
             car.addComponent(esp)
 
         cam_cfg = cfg['cam']
-        if cam_cfg['type'] == 'WEBCAM':
+        if cam_cfg['type'] == 'WEBCAM' and sub_board != 'ESP32':
             from TritonRacerSim.components.camera import Camera
             cam = Camera(cam_cfg)
             car.addComponent(cam)

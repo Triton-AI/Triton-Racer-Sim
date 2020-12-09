@@ -6,14 +6,19 @@ import json
 from enum import Enum
 import time
 import os
+from abc import abstractmethod
+from numpy.core import overrides
 
 import tensorflow as tf
 from tensorflow.keras.layers.experimental.preprocessing import Rescaling
-from tensorflow.keras.layers import Input, Conv2D, Dense, Dropout, Flatten, Concatenate, MaxPooling2D
+from tensorflow.keras.layers import Input, Conv2D, Dense, Dropout, Flatten, Concatenate, MaxPooling2D, LSTM, Embedding
 from tensorflow.keras import optimizers, losses
 from tensorflow.keras.models import Model
+from tensorflow.python.keras.layers.merge import concatenate
 from tensorflow.python.keras.models import load_model
 from tensorflow.keras import layers
+from tensorflow.keras.applications.resnet_v2 import ResNet50V2, preprocess_input
+from tensorflow.keras.layers.experimental.preprocessing import Resizing
 
 from TritonRacerSim.components.controller import DriveMode
 from TritonRacerSim.utils.types import ModelType
@@ -52,18 +57,19 @@ class DataLoader:
                     self.dataset.append((img_arr, feature_vectors, labels))
                     # print (labels)
                     i += 1
+                    if i % 100 == 0: print(f"\rLoading {i} records...",end="" )
                 except FileNotFoundError:
                     # print (f'Loaded {i-1} records in {data_path}')
                     break
 
         print (f'Loaded {len(self.dataset)} records.')
-        self.__split_train_val(train_val_split)
 
+    def shuffle_batch(self, batch_size):
         SHUFFLE_BUFFER_SIZE = 5000
         self.train_dataset_batch = self.train_dataset.unbatch().shuffle(SHUFFLE_BUFFER_SIZE).batch(batch_size, drop_remainder=True)
         self.val_dataset_batch = self.val_dataset.unbatch().shuffle(SHUFFLE_BUFFER_SIZE).batch(batch_size, drop_remainder=True)
 
-    def __split_train_val(self, split = 0.8):
+    def split_train_val(self, split = 0.8, batch_size = 64):
         assert 0 < split <= 1
         from sklearn.model_selection import train_test_split
         train_set, val_set = train_test_split(self.dataset, train_size = split)
@@ -77,7 +83,7 @@ class DataLoader:
         val_labels = []
         
         for data in train_set:
-            if data[1].size: #Has feature vectors?
+            if data[1].size: # Has feature vectors?
                 train_examples.append(data[0])
                 train_example_vecs.append(data[1])
             else:
@@ -244,6 +250,44 @@ class Keras_2D_FULL_HOUSE(Component):
         
         return model
 
+class KerasResNetLSTM:
+    '''
+    Inputs: image, current speed
+    Outputs: steering, throttle
+    '''
+    def __init__(self, input_shape):
+        pass
+
+    @staticmethod
+    def get_model(input_shape, embedding_size, batch_size):
+        img_input = Input(name='img_input', batch_input_shape=(batch_size, *input_shape))
+        resize = Resizing(224, 224)
+        current_spd_input = Input(shape=(1,), name='current_spd_input')
+        encoder = ResNet50V2(include_top=True, weights='imagenet', classifier_activation='linear')
+        fc = Dense(embedding_size, activation='linear', name='encoder_out')
+        for layer in encoder.layers: layer.trianable = False
+        embed = Embedding(3000, int(embedding_size/2))
+        encoder.layers[-1].trainable = True
+        decoder1 = LSTM(512, stateful=True, name='decoder')
+        fc1 = Dense(100, activation='relu', name='dense1')
+        fc2 = Dense(50, activation='relu', name='dense2')
+        fc3 = Dense(2, activation='linear', name='dense3')
+
+        x = resize(img_input)
+        x = encoder(x)
+        x = fc(x)
+        y = embed(current_spd_input * 100)
+        x = tf.expand_dims(x, axis=1)
+        x = Concatenate(axis=2)([x, y])
+        x= decoder1(x)
+        x = fc1(x)
+        x = fc2(x)
+        outputs = fc3(x)
+
+        model = Model(inputs=[img_input, current_spd_input], outputs=[outputs])
+        
+        return model
+
 class DonkeyDataLoader(DataLoader):
     def __init__(self, *paths):
         DataLoader.__init__(self, *paths)
@@ -307,7 +351,6 @@ class FullHouseDataLoader(DataLoader):
                     # Obtain img as array
                     img_path = path.join(data_path, self.get_img_name(i))
                     img_arr = np.asarray(Image.open(img_path),dtype=np.float32)
-                    img_arr /= 255
 
                     # Obtain labels and feature vectors as arrays
                     record_path = path.join(data_path, self.get_record_name(i))
@@ -316,7 +359,6 @@ class FullHouseDataLoader(DataLoader):
                         record= json.load(f)
                     labels = np.asarray(self.get_labels_from_record(record),dtype=np.float32)
                     feature_vectors = np.asarray(self.get_features_from_record(record), dtype=np.float32)
-
                     self.dataset.append((img_arr, feature_vectors, labels))
                     # print (labels)
                     i += 1
@@ -325,13 +367,9 @@ class FullHouseDataLoader(DataLoader):
                     break
 
         print (f'Loaded {len(self.dataset)} records.')
-        self.__split_train_val(train_val_split)
 
-        SHUFFLE_BUFFER_SIZE = 5000
-        self.train_dataset_batch = self.train_dataset.unbatch().shuffle(SHUFFLE_BUFFER_SIZE).batch(batch_size, drop_remainder=True)
-        self.val_dataset_batch = self.val_dataset.unbatch().shuffle(SHUFFLE_BUFFER_SIZE).batch(batch_size, drop_remainder=True)
     
-    def __split_train_val(self, split = 0.8):
+    def split_train_val(self, split = 0.8, batch_size = 64):
         assert 0 < split <= 1
         from sklearn.model_selection import train_test_split
         train_set, val_set = train_test_split(self.dataset, train_size = split)
@@ -371,7 +409,85 @@ class FullHouseDataLoader(DataLoader):
         self.train_dataset = tf.data.Dataset.from_tensors(((train_examples, train_example_spds, train_example_vecs), train_labels))
         self.val_dataset = tf.data.Dataset.from_tensors(((val_examples,val_example_spds, val_example_vecs), val_labels)) 
 
+class LSTMDataLoader(DataLoader):
+    def __init__(self, *paths):
+        DataLoader.__init__(self, *paths)
 
+    def shuffle_batch(self, batch_size):
+        # No actual shuffle. just batching
+        # Batch the data into short sequences of 100 images
+        self. train_dataset_batch = self.train_dataset.batch(batch_size, drop_remainder=True)
+        self.val_dataset_batch = self.val_dataset.batch(batch_size, drop_remainder=True)
+
+        
+
+    def split_train_val(self, split = 0.8, batch_size = 64):
+        assert 0 < split <= 1
+        train_num = int(len(self.dataset) * split)
+        train_set = self.dataset[:train_num]
+        val_set = self.dataset[train_num:]
+
+        train_examples = []
+        train_example_vecs = []
+        train_labels = []
+
+        val_examples = []
+        val_example_vecs = []
+        val_labels = []
+        
+        for data in train_set:
+            train_examples.append(preprocess_input(data[0]*255))
+            train_example_vecs.append(data[1])
+            train_labels.append(data[2])
+
+        for data in val_set:
+            val_examples.append(preprocess_input(data[0]*255))
+            val_example_vecs.append(data[1])
+            val_labels.append(data[2])
+
+        train_examples = self.__stack_and_regroup(train_examples, batch_size)
+        train_labels = self.__stack_and_regroup(train_labels, batch_size)
+        val_examples = self.__stack_and_regroup(val_examples, batch_size)
+        val_labels = self.__stack_and_regroup(val_labels, batch_size)
+
+        train_example_vecs = self.__stack_and_regroup(np.expand_dims(train_example_vecs,axis=1), batch_size)
+        val_example_vecs = self.__stack_and_regroup(np.expand_dims(val_example_vecs,axis=1), batch_size)
+        self.train_dataset = tf.data.Dataset.from_tensors(((train_examples, train_example_vecs), train_labels)).unbatch()
+        self.val_dataset = tf.data.Dataset.from_tensors(((val_examples, val_example_vecs), val_labels)).unbatch()   
+
+
+    def __stack_and_regroup(self, lis, batch_size):
+        print("Regrouping...")
+        arr = np.stack(lis, axis=0)
+        regroup = None
+        output = None
+        seq_len = int(len(arr) / batch_size)
+        for i in range(batch_size):
+            seq = np.expand_dims(arr[i*seq_len:i*seq_len+seq_len], axis=1)
+            regroup = np.hstack((regroup, seq)) if regroup is not None else seq
+        for row in regroup:
+            output = np.vstack((output, row)) if output is not None else row
+        return output
+
+    def get_img_name(self, idx):
+        return f'img_{idx}.jpg'
+
+    def get_record_name(self, idx):
+        return f'record_{idx}.json'
+
+    def get_labels_from_record(self, record={}):
+        return record['mux/steering'], record['mux/throttle'] # Adjust the input range to be [0, 1]
+
+    def get_features_from_record(self,record={}):
+        '''Any additional features are we looking for?'''
+        return record['gym/speed']
+class LSTMCallback(tf.keras.callbacks.Callback):
+    def on_epoch_begin(self, epoch, logs=None):
+        self.model.get_layer('decoder').reset_states()
+        print("Resetting states")
+    def on_test_begin(self, logs=None):
+        self.model.get_layer('decoder').reset_states()
+        print("Resetting states")
 
 def train(cfg, data_paths, model_path, transfer_path=None):
     physical_devices = tf.config.list_physical_devices('GPU')
@@ -384,6 +500,7 @@ def train(cfg, data_paths, model_path, transfer_path=None):
 
     model_type = ModelType(model_cfg['model_type'])
     input_shape = (cam_cfg['img_h'], cam_cfg['img_w'], 3)
+    batch_size = model_cfg['batch_size']
 
     if model_type == ModelType.CNN_2D:
         loader = DataLoader(*data_paths)
@@ -397,25 +514,31 @@ def train(cfg, data_paths, model_path, transfer_path=None):
     elif model_type == ModelType.CNN_2D_FULL_HOUSE:
         loader = FullHouseDataLoader(*data_paths)
         model = Keras_2D_FULL_HOUSE.get_model(input_shape=input_shape)
+    elif model_type == ModelType.LSTM:
+        loader = LSTMDataLoader(*data_paths)
+        model = KerasResNetLSTM.get_model(input_shape, model_cfg['embedding_size'], batch_size)
 
     if transfer_path is not None:
         model = load_model(transfer_path)
-    loader.load(batch_size=model_cfg['batch_size'])
+    loader.load(batch_size=batch_size)
+    loader.split_train_val(split=0.8, batch_size=batch_size)
+    loader.shuffle_batch(batch_size)
+    model.compile(optimizer=optimizers.Adam(lr=model_cfg['learning_rate']), loss='mse')
     model.summary()
-    model.compile(optimizer=optimizers.Adam(lr=0.001), loss='mse')
 
     callbacks = [
         tf.keras.callbacks.ModelCheckpoint(filepath=model_path, save_best_only=True, monitor='val_loss', mode='auto', verbose=1, save_freq='epoch')
     ]
 
-    if cfg['early_stop']:
+    if model_cfg['early_stop']:
         callbacks.append(tf.keras.callbacks.EarlyStopping(patience=model_cfg['early_stop_patience']))
+    if model_type == ModelType.LSTM:
+        callbacks.append(LSTMCallback())
 
     model.fit(loader.train_dataset_batch, epochs=model_cfg['max_epoch'], validation_data=loader.val_dataset_batch, callbacks=callbacks)
     print(f'Finished training. Best model saved to {model_path}.')
     # model.save(model_path)
 
- 
 
 
 

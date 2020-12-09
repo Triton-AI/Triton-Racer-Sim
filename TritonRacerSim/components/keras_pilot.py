@@ -7,11 +7,13 @@ from PIL import Image
 import tensorflow as tf
 
 from tensorflow.python.keras.models import load_model
+from tensorflow.keras.applications.resnet_v2 import preprocess_input
 
 from TritonRacerSim.components.component import Component
 from TritonRacerSim.components.controller import DriveMode
 from TritonRacerSim.utils.types import ModelType
 from TritonRacerSim.utils.mapping import calcBreak, calcThrottle
+from TritonRacerSim.components.keras_train import KerasResNetLSTM
 
 
 class KerasPilot(Component):
@@ -24,7 +26,13 @@ class KerasPilot(Component):
         if cfg['img_preprocessing']['enabled']:
             self.step_inputs[0] = 'cam/processed_img'
         Component.__init__(self, inputs=inputs, outputs=outputs, threaded=False)
-        self.model = load_model(model_path, compile=True)
+        self.model = None
+        if self.model_type == ModelType.LSTM:
+            self.model = KerasResNetLSTM.get_model((cfg['cam']['img_h'], cfg['cam']['img_w'], 3), cfg['ai_model']['embedding_size'], 1)
+            old_weights = load_model(model_path, compile=True).get_weights()
+            self.model.set_weights(old_weights) # Change batch size to 1 to match with inference
+        else:
+            self.model = load_model(model_path, compile=True)
         self.model.summary()
         tf.keras.backend.set_learning_phase(0)
         self.on = True
@@ -39,7 +47,7 @@ class KerasPilot(Component):
         smooth_cfg = cfg['ai_boost']['smooth_steering']
         self.smooth_steering = smooth_cfg['enabled']
         self.smooth_steering_threshold = smooth_cfg['threshold']
-        self.thr_ctl_multiplier = smooth_cfg['thr_ctl_multiplier']
+        self.thr_ctl_multiplier = cfg['ai_boost']['thr_ctl_multiplier']
 
         model_cfg = cfg['ai_model']
         self.from_donkey = model_cfg['from_donkey']
@@ -48,13 +56,17 @@ class KerasPilot(Component):
             print('[WARNING] Smooth-Steering Enabled')
 
         self.cfg = cfg
+        self.last_mode = None
+        self.this_mode = None
     
     def step(self, *args):
+        self.last_mode = self.this_mode
+        self.this_mode = args[-1]
         if args[0] is None:
             return 0.0, 0.0, 0.0
         if  args[-1] == DriveMode.AI_STEERING or args[-1] == DriveMode.AI:
+
             img_arr = np.asarray(args[0],dtype=np.float32)
-            img_arr /= 255
             #img = Image.fromarray(img_arr)
             #plt.imshow(img)
             #plt.show()
@@ -63,10 +75,12 @@ class KerasPilot(Component):
             
             if self.model_type == ModelType.CNN_2D:
                 # start_time = time.time()
+                img_arr /= 255
                 steering_and_throttle = self.model(img_arr)
                 # print(f'Prediction time: {time.time() - start_time}')
                 if not self.from_donkey:
-                    steering, throttle = self.__cap(steering_and_throttle.numpy()[0])
+                    steering = self.__cap(steering_and_throttle.numpy()[0][0])
+                    throttle = self.__cap(steering_and_throttle.numpy()[0][1])
                 else:
                     steering = self.__cap(steering_and_throttle[0].numpy()[0][0])
                     throttle = self.__cap(steering_and_throttle[1].numpy()[0][0]) * self.thr_ctl_multiplier
@@ -77,6 +91,7 @@ class KerasPilot(Component):
                 return steering, throttle, 0.0
 
             elif self.model_type == ModelType.CNN_2D_SPD_FTR:
+                img_arr /= 255
                 spd = np.asarray((args[1] / 20,), dtype=np.float32)
                 spd = spd.reshape((1,) + spd.shape) 
                 # print (img_arr.shape)
@@ -89,6 +104,7 @@ class KerasPilot(Component):
 
             elif self.model_type == ModelType.CNN_2D_SPD_CTL:
                 # print (img_arr.shape)
+                img_arr /= 255
                 real_spd = args[1]
                 steering_and_speed = self.model(img_arr)
                 steering = self.__cap(steering_and_speed.numpy()[0][0])
@@ -108,6 +124,7 @@ class KerasPilot(Component):
 
             elif self.model_type == ModelType.CNN_2D_FULL_HOUSE:
                 # print (args[1], args[2], args[3])
+                img_arr /= 255
                 real_spd = args[1]
                 spd = np.asarray(real_spd/20, dtype=np.float32)
                 spd = spd.reshape((1,) + spd.shape)
@@ -123,22 +140,23 @@ class KerasPilot(Component):
                 if self.speed_control_break:
                     throttle = 1.0 if predicted_speed - real_spd > 0.0 else 0.0
                     breaking = calcBreak(real_spd, predicted_speed * self.speed_control_threshold, self.speed_control_break_multiplier)
-               
-                print (f'Thr: {throttle}, Brk: {breaking} \r', end='')
                 steering = self.__smooth_steering(steering)
+                print (f'Str: {steering}, Thr: {throttle}, Brk: {breaking} \r', end='')
                 
                 return steering, throttle, breaking
-                '''
-                if (predicted_speed * self.speed_control_threshold > real_spd): # Accelerate to match the predicted speed
-                    throttle = 1.0
-                else:
-                    throttle = 0.0 # Decelerate to match the predicted speed
-                    breaking = 0.0
+            elif self.model_type == ModelType.LSTM:
+                if self.last_mode != self.this_mode:
+                    print("Resetting States")
+                    self.model.get_layer('decoder').reset_states()
+                img_arr = preprocess_input(img_arr)
+                spd = np.asarray((args[1],), dtype=np.float32) 
+                # print (img_arr.shape)
+                steering_and_throttle = self.model((img_arr, spd))
+                steering, throttle = self.__cap(steering_and_throttle.numpy()[0][0]), self.__cap(steering_and_throttle.numpy()[0][1])
 
                 steering = self.__smooth_steering(steering)
-
-                return steering, throttle, breaking
-                '''
+                print (f'Str: {steering}, Thr: {throttle}\r', end='')
+                return steering, throttle, 0.0
         return 0.0, 0.0, 0.0
 
     def onStart(self):

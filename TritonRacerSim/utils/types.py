@@ -7,4 +7,5 @@ class ModelType(Enum):
     CNN_2D_FULL_HOUSE = 'cnn_2d_full_house'
     CNN_3D = 'cnn_3d' # takes a sequence of images, predicts throttle and steering
     RNN = 'rnn' # same as 3D CNN
+    LSTM = 'lstm'
 

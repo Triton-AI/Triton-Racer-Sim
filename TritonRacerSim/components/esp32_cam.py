@@ -1,3 +1,4 @@
+import base64
 import io
 import socket
 import time
@@ -8,7 +9,7 @@ from PIL import Image
 
 from TritonRacerSim.components.component import Component
 from gym_donkeycar.core.sim_client import SDClient
-#import cv2
+import cv2
 
 class ESP32CAM(Component, SDClient):
     def __init__(self, cfg):
@@ -16,7 +17,10 @@ class ESP32CAM(Component, SDClient):
         esp_cfg = cfg['esp32']
         calibrate_cfg = cfg['calibration']
         Component.__init__(self, inputs=['mux/steering', 'mux/throttle', 'mux/break'], outputs=['cam/img'], threaded=True)
-        SDClient.__init__(self, esp_cfg['ip'], esp_cfg['port'], poll_socket_sleep_time=0.025)
+        ip = esp_cfg['ip']
+        port = esp_cfg['port']
+        print(f"Connecting to {ip}:{port}...")
+        SDClient.__init__(self, ip, port, poll_socket_sleep_time=0.025)
         self.running = True
 
         self.left_pulse = calibrate_cfg['max_left_pwm']
@@ -25,6 +29,8 @@ class ESP32CAM(Component, SDClient):
         self.max_pulse = calibrate_cfg['max_forward_pwm']
         self.min_pulse = calibrate_cfg['max_reverse_pwm']
         self.zero_pulse = calibrate_cfg['zero_throttle_pwm']
+        self.img = None
+        self.to_return = None
 
     def onStart(self):
         '''
@@ -39,15 +45,22 @@ class ESP32CAM(Component, SDClient):
     def step(self, *args):
         steering, throttle, breaking = args
         self.__command(self.validate(steering), self.validate(throttle), self.validate(breaking))
+        return self.to_return,
 
     def thread_step(self):
         while self.running:
-            pass
+            if self.img is not None:
+                img_arr = cv2.flip(cv2.flip(np.array(self.img),0),1)
+                self.to_return = img_arr
+                img_arr = cv2.cvtColor(img_arr, cv2.COLOR_RGB2BGR)
+                cv2.imshow("ESP 32 Image", img_arr)
+                cv2.waitKey(1) 
+                time.sleep(0.05)
 
     def onShutdown(self):
         """Shutdown"""
         self.running = False
-        self.__command(self.neutral_steering_pulse, self.zero_pulse)
+        self.__command(0.0, 0.0)
 
     def getName(self):
         return 'ESP32 CAM' 
@@ -55,7 +68,7 @@ class ESP32CAM(Component, SDClient):
     def on_msg_recv(self, j):
         msg_type = j['msg_type']
         if msg_type == 'image':
-            pass
+            self.img = self.create_image_from_bytes(j['data'])
         elif msg_type == 'heartbeat':
             pass
 
@@ -67,25 +80,21 @@ class ESP32CAM(Component, SDClient):
         """Send Instructions to ESP32"""
         msg = ''
         msg_dict = {}
+        from TritonRacerSim.utils.mapping import map_steering, map_throttle
+        steering = int(map_steering(steering, self.left_pulse, self.neutral_steering_pulse, self.right_pulse))
+        throttle = int(map_throttle(throttle, self.min_pulse, self.zero_pulse, self.max_pulse))
         if not shutdown:
             msg_dict = {'msg_type': 'control', 'steering': steering, 'throttle': throttle, 'breaking': breaking}
         else:
             msg_dict = {'msg_type': 'shutdown',}
         msg = json.dumps(msg_dict) + '\n'
+        #print(msg)
         self.send(msg)
+
+    def create_image_from_bytes(self, img_string) -> Image.Image:
+        stream = io.BytesIO(base64.b64decode(img_string))
+        return Image.open(stream)
 '''
-serv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-# address '0.0.0.0' or '' work to allow connections from other machines.  'localhost' disallows external connections.
-# see https://www.raspberrypi.org/forums/viewtopic.php?t=62108
-serv.bind(('0.0.0.0', 9093))
-serv.listen(5)
-print("Ready to accept 5 connections")
-
-
-def create_image_from_bytes(image_bytes) -> Image.Image:
-    stream = io.BytesIO(image_bytes)
-    return Image.open(stream)
-
 
 while True:
     conn, addr = serv.accept()
