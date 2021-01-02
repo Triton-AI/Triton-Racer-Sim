@@ -32,11 +32,12 @@ import sched
 import re
 
 from TritonRacerSim.components.controller import DriveMode
+from TritonRacerSim.utils.types import ModelType
 
 class TeensyMC_Test(Component):
     def __init__(self, cfg):
         # Params for tweaking
-        super().__init__(inputs=['mux/steering', 'mux/throttle'], outputs=[], threaded=True)
+        super().__init__(inputs=['mux/steering', 'mux/throttle', 'ai/speed', 'usr/mode'], outputs=[], threaded=True)
         teensy_cfg = cfg['teensy']
         calibrate_cfg = cfg['calibration']
         self.timeout = teensy_cfg['watchdog_trigger_time']  # ms before watchdog kicks in
@@ -51,6 +52,7 @@ class TeensyMC_Test(Component):
 
         self.throttle = 0.0
         self.steering = 0.0
+        self.speed = 0.0
 
         self.left_pulse = calibrate_cfg['max_left_pwm']
         self.right_pulse = calibrate_cfg['max_right_pwm']
@@ -60,9 +62,9 @@ class TeensyMC_Test(Component):
         self.zero_pulse = calibrate_cfg['zero_throttle_pwm']
 
 
-    def onStart(self):
-        self.__calibrate()
-        #self.watchdog_subthread.start_watchdog(delay=3000)
+    def onStart(self):        # self.send(sbc_message + '\n')
+
+        # Process all available information before leavingy=3000)
         #self.watchdog_mainthread.start_watchdog(delay=3000)
 
     def thread_step(self):
@@ -72,25 +74,22 @@ class TeensyMC_Test(Component):
 
     def __poll(self):
         """Get input values from Teensy in manual mode"""
-        while not self.ser.in_waiting:
-            pass
+        # Go over all messages (one per line) in the serial buffer
+        # Store the values on board (speed,throttle,steering)
+        # Check next message
+        # If none left, poll function is done
+        while self.ser.in_waiting:
+            mcu_message = self.ser.readline().decode().lower()  # The message coming in
+            number_in_message = re.findall(r'\d+\.*\d*', mcu_message)  # Find number in message
 
-        mcu_message = self.ser.readline().decode().lower()  # The message coming in
-        sbc_message = 'poll'  # The message to be sent back. a single 'poll' means polling every information
-        number_in_message = re.findall(r'\d+\.*\d*', mcu_message)  # Find number in message
+            self.watchdog_subthread.reset_countdown()  # Reset watchdog as soon as data is received
+            if 'speed' in mcu_message:
+                self.speed = number_in_message[0]
+            elif 'throttle' in mcu_message:
+                self.throttle = number_in_message[0]
+            elif 'steering' in mcu_message:
+                self.steering = number_in_message[0]
 
-        self.watchdog_subthread.reset_countdown()  # Reset watchdog as soon as data is received
-        if 'speed' in mcu_message:
-            self.speed = number_in_message[0]
-            sbc_message += 'Speed'
-        elif 'throttle' in mcu_message:
-            self.throttle = number_in_message[0]
-            sbc_message += 'Throttle'
-        elif 'steering' in mcu_message:
-            self.steering = number_in_message[0]
-            sbc_message += 'Steering'
-
-        self.send(sbc_message + '\n')
 
     def __command(self, throttle=None, speed=None, steering=0, shutdown=False):
         """Send Instructions to Teensy"""
@@ -99,20 +98,39 @@ class TeensyMC_Test(Component):
             if throttle is not None:
                 msg = f'commandThrottle_{throttle}\n'
             else:
-                msg = f'commandThrottle_{0.0}\n'
+                msg = f'commandSpeed_{speed}\n'
+
             msg += f'commandSteering_{steering}\n'
+
         else:
             msg = 'commandShutdown\n'
         # print (msg)
         self.send(msg)
 
-    def step(self, *args):
+    # Check to see what should be returned depending on usr/mode (send throttle, speed, etc)
+    # Also check for model types and make sure a speed model is being used (send speed)
+    # else just send throttle
+    def step(self, *args): 
         self.watchdog_mainthread.reset_countdown()
-        steering, throttle = args
+        self.steering, self.throttle, self.speed, carMode = args
+
+        # What is this for?
         #if (throttle < 0 and self.throttle >= 0):
         #    self.__start_reverse()
-        self.steering, self.throttle = args
-        self.__command(throttle=self.throttle, steering=self.steering)
+
+        # Check if drivemode is set full AI mode 
+        if carMode == DriveMode.AI:
+            # and is using a speed based model
+            if cfg['ai_model']['model_type'] == ModelType.CNN_2D_SPD_CTL:
+                self.__command(speed=self.speed, steering=self.steering))
+        
+            # Else we are not using a speed based model (throttle base)
+            else: 
+                self.__command(throttle=self.throttle, steering=self.steering))
+        
+        # Human Mode or Partial AI (Steering)
+        else:
+            self.__command(throttle=self.throttle, steering=self.steering))
 
     def onShutdown(self):
         self.running = False

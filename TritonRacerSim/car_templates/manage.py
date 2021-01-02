@@ -52,6 +52,14 @@ def assemble_car(cfg = {}, args = {}, model_path = None):
         pilot = KerasPilot(cfg, model_path, ModelType(cfg['ai_model']['model_type']))
         car.addComponent(pilot)
 
+    # Speed calculator for car
+    # Simulated Car or Real Car (Simulated car with speed based control uses speed_control part, 
+    # physical uses teensy microcontroller which handles speed calculations on its own)
+    if cfg['I_am_on_simulator'] and cfg['ai_model']['model_type'] == 'cnn_2d_speed_control':
+        from TritonRacerSim.components.speed_control import SpeedControl
+        speedCalculator = SpeedControl(cfg)
+        car.addComponent(speedCalculator)
+
     # Joystick
     js_cfg = cfg['joystick']
     if not args['--dummy']:
