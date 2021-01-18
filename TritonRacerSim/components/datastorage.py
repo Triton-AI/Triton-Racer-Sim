@@ -10,7 +10,7 @@ import time
 import queue
 
 class DataStorage(Component):
-    def __init__(self, to_store=['cam/img', 'mux/throttle', 'mux/steering', 'mux/break', 'gym/speed', 'loc/segment', 'gym/x', 'gym/y', 'gym/z', 'gym/cte'], storage_path = None):
+    def __init__(self, to_store=['cam/img', 'mux/throttle', 'mux/steering', 'mux/break', 'gym/speed', 'loc/segment', 'gym/x', 'gym/y', 'gym/z', 'gym/cte', 'loc/cte'], storage_path = None):
         super().__init__(inputs=to_store, threaded=False)
         self.step_inputs += ['usr/del_record', 'usr/toggle_record']
         self.on = True

@@ -10,13 +10,13 @@ loop_hz: 20 # Frequency that TritonAIRacer runs at. 20 is default. You can make 
 joystick: # Joystick
   type: 'ps4' # [ ps4 | xbox | g28 | steam | switch | custom ] Wired joysticks recommended.
   use_bluetooth: false # For ps4 controller: is it connected via bluetooth or wire?
-  joystick_max_throttle: 1.0 # throttle limiter (0, 1]
-  joystick_max_steering: 1.0 # steering limiter (0, 1]
-  joystick_custom_mapping_file: "custom_joystick.json" # Only when using custom joystick.
+  max_throttle: 1.0 # throttle limiter (0, 1]
+  max_steering: 1.0 # steering limiter (0, 1]
+  custom_mapping_file: "custom_joystick.json" # Only when using custom joystick.
   default_drive_mode: 'human' # [ human | ai_steering | ai ] Who should take control of the car at launch?  
 
 ai_model: # Training
-  model_type: 'cnn_2d' # cnn_2d | cnn_2d_speed_as_feature | cnn_2d_speed_control | cnn_2d_full_house
+  model_type: 'cnn_2d' # cnn_2d | cnn_2d_speed_as_feature | cnn_2d_speed_control | cnn_2d_full_house | pid
   early_stop: true # Early stop when training hasn't made any progress within the patience
   early_stop_patience: 5
   max_epoch: 100 # Max epoch to train
@@ -27,10 +27,15 @@ ai_model: # Training
 
 speed_control: # Speed-based control params (for speed control and full house models)
   threshold: 1.1 # Allow the model to overspeed. 1.1 means 10% above predicted speed.
+  algorithm: pid # sigmoid | pid
   reverse: true # Apply reverse throttle when overspeed, e.g. -0.4.
   reverse_multiplier: 1.0 # How hard the car should reverse
   break: false # [WARRNING] OVERWRITES REVERSE. Apply break when overspeed, e.g. 0.3. Break will OVERRIDE any throttle value.
   break_multiplier: 1.0 # How hard the car should break
+  pid:
+    kp: 1.0
+    ki: 0.1
+    kd: 0.05
 
 
 simulator: # DonkeyGym simulator settings
@@ -69,8 +74,8 @@ simulator_autolaunch: # Let the program launches the simulator software for you.
   donkey_sim_full_path: 'remote' # Put "remote" will bypass this option. 
 
 cam: # Camera setting for both real and simulator
-  img_w: 320 # REAL OR SIMULATOR: Width after resizing and stored
-  img_h: 240 # REAL OR SIMULATOR: Height after resizing and stored
+  img_w: 160 # REAL OR SIMULATOR: Width after resizing and stored
+  img_h: 120 # REAL OR SIMULATOR: Height after resizing and stored
   type: 'WEBCAM' # REAL camera: WEBCAM | MOCK Put mock if the camera is not actually installed
   native_resolution: [320, 240] # REAL camera: Resolution of opening the camera, check with manufacturer for resolution support
   img_format: 'rgb' # REAL camera: RGB or grey
@@ -120,7 +125,8 @@ ai_boost: # AI boost
 
 location_tracker: # Experimental location tracker
   enabled: false
-  track_data_file: 'track_data/generated_track.json'
+  seg_data_file: 'track_data/generated_track.json'
+  cte_data_file: 'track_data/generated_track.json'
 
 drive_assist: # Driver Assistance
   enabled: false # Drive assist for simulator. Not recommanded for real cars.
@@ -153,3 +159,14 @@ img_preprocessing: # Preprocess image from either real camera or simulator
     threshold_a: 60 # Threshold used in OpenCV canny filter
     threshold_b: 100
     destination_channel: 2 # Which channel to put the filtered layer? 0 | 1 | 2 for RGB image
+
+pid_pilot:
+  steering:
+    kp: 1.0
+    ki: 0.1
+    kd: 0.2
+  speed:
+    kp: 1.0
+    ki: 0.1
+    kd: 0.05
+  speed_limit_k: 5 # k as in speed = k / steering. Speed and steering are inversly proportional

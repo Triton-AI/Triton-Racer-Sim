@@ -17,7 +17,7 @@ from tensorflow.keras.models import Model
 from tensorflow.python.keras.layers.merge import concatenate
 from tensorflow.python.keras.models import load_model
 from tensorflow.keras import layers
-from tensorflow.keras.applications.resnet_v2 import ResNet50V2, preprocess_input
+from tensorflow.keras.applications.resnet import ResNet50, preprocess_input
 from tensorflow.keras.layers.experimental.preprocessing import Resizing
 
 from TritonRacerSim.components.controller import DriveMode
@@ -263,10 +263,10 @@ class KerasResNetLSTM:
         img_input = Input(name='img_input', batch_input_shape=(batch_size, *input_shape))
         resize = Resizing(224, 224)
         current_spd_input = Input(shape=(1,), name='current_spd_input')
-        encoder = ResNet50V2(include_top=True, weights='imagenet', classifier_activation='linear')
+        encoder = ResNet50(include_top=True, weights='imagenet', classifier_activation='linear')
         fc = Dense(embedding_size, activation='linear', name='encoder_out')
         for layer in encoder.layers: layer.trianable = False
-        embed = Embedding(3000, int(embedding_size/2))
+        embed = Embedding(100, int(embedding_size/2))
         encoder.layers[-1].trainable = True
         decoder1 = LSTM(512, stateful=True, name='decoder')
         fc1 = Dense(100, activation='relu', name='dense1')
@@ -276,7 +276,7 @@ class KerasResNetLSTM:
         x = resize(img_input)
         x = encoder(x)
         x = fc(x)
-        y = embed(current_spd_input * 100)
+        y = embed(current_spd_input)
         x = tf.expand_dims(x, axis=1)
         x = Concatenate(axis=2)([x, y])
         x= decoder1(x)
@@ -310,7 +310,7 @@ class SpeedFeatureDataLoader(DataLoader):
         DataLoader.__init__(self, *paths)
     def get_features_from_record(self,record={}):
         '''Any additional features are we looking for?'''
-        return np.asarray((record['gym/speed'] / 20,))
+        return np.asarray((record['gym/speed'],))
     
 class SpeedCtlDataLoader(DataLoader):
     def __init__(self, *paths):
@@ -476,7 +476,7 @@ class LSTMDataLoader(DataLoader):
         return f'record_{idx}.json'
 
     def get_labels_from_record(self, record={}):
-        return record['mux/steering'], record['mux/throttle'] # Adjust the input range to be [0, 1]
+        return record['mux/steering'], record['gym/speed'] # Adjust the input range to be [0, 1]
 
     def get_features_from_record(self,record={}):
         '''Any additional features are we looking for?'''

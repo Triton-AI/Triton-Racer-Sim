@@ -29,7 +29,7 @@ LiDAR added in dev branch
 1. Install [miniconda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html)
 2. `conda create -n tritonracer python=3.8`
 3. `conda activate tritonracer`
-4. `pip install docopt pyserial tensorflow==2.3.0 pillow keras==2.3.0 opencv-python pygame==2.0.0.dev10`
+4. `pip install docopt pyserial tensorflow==2.3.0 pillow keras==2.3.0 opencv-python pygame==2.0.0.dev10 Shapely simple-pid`
 5. `conda install scikit-learn`
 6. If you are going to use donkey simulator: set up [donkey gym](http://docs.donkeycar.com/guide/simulator/#install) in this environment (omit `conda activate donkey` in the original installation procedure)
     1. If you have a donkeycar installation with donkey gym setup, navigate to the donkey gym repository. If not, find a suitable place and `git clone https://github.com/tawnkramer/gym-donkeycar`

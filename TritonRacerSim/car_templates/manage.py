@@ -52,13 +52,24 @@ def assemble_car(cfg = {}, args = {}, model_path = None):
         pilot = KerasPilot(cfg, model_path, ModelType(cfg['ai_model']['model_type']))
         car.addComponent(pilot)
 
-    # Speed calculator for car
-    # Simulated Car or Real Car (Simulated car with speed based control uses speed_control part, 
-    # physical uses teensy microcontroller which handles speed calculations on its own)
-    if cfg['I_am_on_simulator'] and cfg['ai_model']['model_type'] == 'cnn_2d_speed_control':
-        from TritonRacerSim.components.speed_control import SpeedControl
-        speedCalculator = SpeedControl(cfg)
-        car.addComponent(speedCalculator)
+        # Speed calculator for car
+        # Simulated Car or Real Car (Simulated car with speed based control uses speed_control part, 
+        # physical uses teensy microcontroller which handles speed calculations on its own)
+        if cfg['I_am_on_simulator'] and cfg['ai_model']['model_type'] == 'cnn_2d_speed_control':
+            spd_cfg = cfg['speed_control']
+            from TritonRacerSim.components.speed_control import SpeedControl, PIDSpeedControl
+            speedCalculator = None
+            if spd_cfg['algorithm'] == 'sigmoid':
+                speedCalculator = SpeedControl(spd_cfg)
+            elif spd_cfg['algorithm'] == 'pid':
+                speedCalculator = PIDSpeedControl(spd_cfg)
+            car.addComponent(speedCalculator)
+
+    # PID Pilot
+    elif cfg['ai_model']['model_type'] == 'pid':
+        from TritonRacerSim.components.pid_pilot import PIDPilot
+        pilot = PIDPilot(cfg['pid_pilot'])
+        car.addComponent(pilot)
 
     # Joystick
     js_cfg = cfg['joystick']
@@ -117,10 +128,10 @@ def assemble_car(cfg = {}, args = {}, model_path = None):
         preprocessing = ImgPreprocessing(prep_cfg)
         car.addComponent(preprocessing)
 
-    # Location tracker (for mountain track)
+    # Location tracker
     loc_cfg = cfg['location_tracker']
     if loc_cfg['enabled']:
-        tracker = LocationTracker(track_data_path=loc_cfg['track_data_file'])
+        tracker = LocationTracker(seg_data_path=loc_cfg['seg_data_file'], cte_data_path=loc_cfg['cte_data_file'])
         car.addComponent(tracker)
 
     # Data storage
@@ -201,6 +212,6 @@ if __name__ == '__main__':
                 creator.js = creator.select_joystick()
                 while True:
                     print(f"{creator.dump_joystick(creator.js)}\r",end="")
-                    time.sleep(0.02)
+                    time.sleep(0.5)
             else:
                 creator.create()

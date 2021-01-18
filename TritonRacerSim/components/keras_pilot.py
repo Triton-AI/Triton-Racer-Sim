@@ -110,7 +110,7 @@ class KerasPilot(Component):
                 steering = self.__cap(steering_and_speed.numpy()[0][0])
                 predicted_speed = steering_and_speed.numpy()[0][1] * 20
 
-                # print (f'Spd: {real_spd}, Pred: {predicted_speed} \r', end='')
+                print (f'Spd: {real_spd}, Pred: {predicted_speed}, Str: {steering} \r', end='')
                 #print (f'Thr: {throttle}, Brk: {breaking} \r', end='')
                 steering = self.__smooth_steering(steering)
                 return steering, None, None, predicted_speed
