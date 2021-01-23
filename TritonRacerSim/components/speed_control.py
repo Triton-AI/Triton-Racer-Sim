@@ -9,7 +9,7 @@ from simple_pid import PID
 # This part is not used for physical cars using the teensy microcontroller which performs its own speed calculations 
 class SpeedControl(Component):
     def __init__(self, cfg):        # Inputs [current speed of car, speed predicted from the network based on training] Outputs [calculated throttle to send to car]
-        super().__init__(inputs=['gym/speed', 'ai/speed', 'usr/mode'], outputs=['ai/throttle', 'ai/breaking'], threaded=False)
+        super().__init__(inputs=['gym/speed', 'ai/speed', 'usr/mode', 'loc/break_indicator'], outputs=['ai/throttle', 'ai/breaking'], threaded=False)
         spd_cfg = cfg
         self.speed_control_threshold = spd_cfg['threshold']
         self.speed_control_reverse_multiplier = spd_cfg['reverse_multiplier']
@@ -30,8 +30,11 @@ class SpeedControl(Component):
         if args[0] is None:
             return 0.0, 0.0
 
+        if args[3] == 1:
+            predicted_spd *= 0.7
+
         # If system has image, we can calculate desired speed
-        if  args[-1] == DriveMode.AI_STEERING or args[-1] == DriveMode.AI:
+        if  args[2] == DriveMode.AI_STEERING or args[2] == DriveMode.AI:
             # Calculate throttle using predicted speed from model
             throttle = calcThrottleSim(current_spd, predicted_spd * self.speed_control_threshold, self.speed_control_reverse_multiplier)
 

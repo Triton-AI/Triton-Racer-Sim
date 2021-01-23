@@ -46,6 +46,12 @@ def assemble_car(cfg = {}, args = {}, model_path = None):
     from TritonRacerSim.components.track_data_process import LocationTracker
     from TritonRacerSim.components.driver_assistance import DriverAssistance
 
+    # Verbose
+    if len(cfg['verbose']) > 0:
+        from TritonRacerSim.components.verbose import Verbose
+        vb = Verbose(cfg)
+        car.addComponent(vb)
+
     # Autopilot
     if model_path is not None:
         from TritonRacerSim.components.keras_pilot import KerasPilot
@@ -55,7 +61,9 @@ def assemble_car(cfg = {}, args = {}, model_path = None):
         # Speed calculator for car
         # Simulated Car or Real Car (Simulated car with speed based control uses speed_control part, 
         # physical uses teensy microcontroller which handles speed calculations on its own)
-        if cfg['I_am_on_simulator'] and cfg['ai_model']['model_type'] == 'cnn_2d_speed_control':
+        model_type = cfg['ai_model']['model_type']
+        speed_based_models = ['cnn_2d_speed_control', 'cnn_2d_full_house', 'cnn_2d_speed_control_break_indication']
+        if cfg['I_am_on_simulator'] and model_type in speed_based_models:
             spd_cfg = cfg['speed_control']
             from TritonRacerSim.components.speed_control import SpeedControl, PIDSpeedControl
             speedCalculator = None
@@ -131,7 +139,7 @@ def assemble_car(cfg = {}, args = {}, model_path = None):
     # Location tracker
     loc_cfg = cfg['location_tracker']
     if loc_cfg['enabled']:
-        tracker = LocationTracker(seg_data_path=loc_cfg['seg_data_file'], cte_data_path=loc_cfg['cte_data_file'])
+        tracker = LocationTracker(loc_cfg)
         car.addComponent(tracker)
 
     # Data storage

@@ -3,6 +3,7 @@ from copy import copy
 import cv2
 import numpy as np
 from PIL import Image
+from tensorflow.python.keras import constraints
 
 from TritonRacerSim.components.component import Component
 
@@ -17,6 +18,19 @@ class ImgPreprocessing(Component):
         self.dy_bright = cfg['dynamic_brightness']
         self.color = cfg['color_filter']
         self.edge = cfg['edge_detection']
+        self.upscale = cfg['ai_upscaling']
+
+        if self.upscale['enabled']:
+            from cv2 import dnn_superres
+            if self.upscale['scale'] == 2:
+                model_path = 'EDSR_x2.pb'
+            elif self.upscale['scale'] == 4:
+                model_path = 'EDSR_x4.pb'
+            else: raise Exception('Unsupported ai upscale factor.')
+
+            self.sr = dnn_superres.DnnSuperResImpl_create()
+            self.sr.readModel(model_path)
+            self.sr.setModel("edsr", self.upscale['scale'])
 
     def step(self, *args):
         img_arr = args[0]
@@ -43,6 +57,9 @@ class ImgPreprocessing(Component):
         merge_instruction=[]
 
         img = self.__trim_brightness_contrast(img)
+
+        if self.upscale['enabled']:
+            img = self.__upscale(img)
         if self.color['enabled']:
             color_filtered_layers = self.__color_filter(img)
             #print(img.shape)
@@ -54,6 +71,7 @@ class ImgPreprocessing(Component):
             merge_instruction.append(self.edge['destination_channel'])
 
         self.__merge(merge_instruction, img, layers)
+        img = self.__crop(img)
         return img
 
 
@@ -83,8 +101,6 @@ class ImgPreprocessing(Component):
         return cv2.Canny(img, threshold_a, threshold_b)
 
     def __trim_brightness_contrast(self, img):
-        #mean = cv2.mean(img[40:119,:,:])
-        #multiplier = target_brightness / sum(list(mean))
         dy_bright_enabled = self.dy_bright['enabled']
         contrast_enabled = self.contrast['enabled']
 
@@ -98,13 +114,31 @@ class ImgPreprocessing(Component):
             if contrast_enabled:
                 contrast = self.contrast['ratio']
                 offset = self.contrast['offset']
-                img_arr -= offset
-                img_arr *= contrast
-                img_arr += offset
+                boost = self.contrast['channel_boost']
+                for i in range(img.shape[2]):
+                    img_arr[:,:,i] += boost[i]               
+                img_arr = np.clip(img_arr, 0.0, 255.0)
+
+                img_ave = np.average(img_arr, axis=2)
+                mask = np.where(img_ave > offset, contrast, 1 / contrast)
+                mask = np.swapaxes(np.tile(mask, (3, 1, 1)).T, 0, 1)
+                img_arr = np.multiply(img_arr, mask)
             img_arr = np.clip(img_arr, 0, 255)
             img = img_arr.astype(np.uint8)
 
         return img
+
+    def __crop(self, img):
+        t, b, l, r = self.cfg['crop']
+        img = img[t:, l:]
+        if b > 0:
+            img = img[:-b, :]
+        if r > 0:
+            img = img[:-r, :]
+        return img
+
+    def __upscale(self, img):
+        return self.sr.upsample(img)
 
     def onShutdown(self):
         self.running = False

@@ -2,6 +2,7 @@
 
 I_am_on_simulator: false # [IMPORTANT] Turn this on on simulator. Turn this off on real cars.
 loop_hz: 20 # Frequency that TritonAIRacer runs at. 20 is default. You can make it higher on small models or powerful jetsons. Make it smaller when using ESP32 or running big models.
+verbose: [] # A list of variables to print out for debugging. e.g. ['ai/throttle', 'ai/steering']
 # ***************************
 # !!! INDENTATION MATTERS !!!
 # !!! INDENTATION MATTERS !!!
@@ -16,7 +17,7 @@ joystick: # Joystick
   default_drive_mode: 'human' # [ human | ai_steering | ai ] Who should take control of the car at launch?  
 
 ai_model: # Training
-  model_type: 'cnn_2d' # cnn_2d | cnn_2d_speed_as_feature | cnn_2d_speed_control | cnn_2d_full_house | pid
+  model_type: 'cnn_2d' # cnn_2d | cnn_2d_speed_as_feature | cnn_2d_speed_control | cnn_2d_full_house | pid | cnn_2d_speed_control_break_indication
   early_stop: true # Early stop when training hasn't made any progress within the patience
   early_stop_patience: 5
   max_epoch: 100 # Max epoch to train
@@ -123,10 +124,13 @@ ai_boost: # AI boost
 
   thr_ctl_multiplier: 1.0 # Basic multiplier for throttle-based AI models, such as those from donkeycar
 
-location_tracker: # Experimental location tracker
-  enabled: false
-  seg_data_file: 'track_data/generated_track.json'
-  cte_data_file: 'track_data/generated_track.json'
+location_tracker: # Give the relative location on the track as a segment number [0, 1] (% of track completed), and a cross-track error.
+  enabled: true
+  seg_data_file: 'warehouse_center.json'
+  cte_data_file: 'warehouse_center.json'
+  break_region: # Region of segment tp signal the break indicator. Used in fullhouse model.
+    - null # Comment this out in actual use
+    - [0.1, 0.2]
 
 drive_assist: # Driver Assistance
   enabled: false # Drive assist for simulator. Not recommanded for real cars.
@@ -142,6 +146,7 @@ img_preprocessing: # Preprocess image from either real camera or simulator
     enabled: false
     ratio: 1.0 # Enhance contrast, especially on low contrast tracks. Set to 1.0 to disable.
     offset: 125 # Ranging [0,255]. Pixels above this value will be boosted, while below this will be decreased.
+    channel_boost: [0, 0, 0] # Boost the value of a single chanel (RGB) for color correction
   
   dynamic_brightness:
     enabled: false # Automatically adjust the brightness of the image
@@ -159,6 +164,12 @@ img_preprocessing: # Preprocess image from either real camera or simulator
     threshold_a: 60 # Threshold used in OpenCV canny filter
     threshold_b: 100
     destination_channel: 2 # Which channel to put the filtered layer? 0 | 1 | 2 for RGB image
+
+  crop: [0, 0, 0, 0] # Top, bottom, left, right; number of pixels to crop.
+
+  ai_upscaling:
+    enabled: false
+    scale: 2 # 2 or 4
 
 pid_pilot:
   steering:

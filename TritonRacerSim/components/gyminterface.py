@@ -63,6 +63,7 @@ class GymInterface(Component, SDClient):
         self.gym_config = DEFAULT_GYM_CONFIG
         connection_config = gym_config['local_connection'] if gym_config['default_connection'] == 'local' else gym_config['remote_connection']
         self.gym_config.update(gym_config['car'])
+        self.lidar_config = gym_config['lidar']
         self.gym_config.update(connection_config)
 
         self.deg_inc = gym_config['lidar']['deg_inc']
@@ -177,10 +178,11 @@ class GymInterface(Component, SDClient):
         '''
         print (f"Gym Interface: Camera resolution ({self.gym_config['img_w']}, {self.gym_config['img_h']}).")
 
-        print('Sending LiDAR config')
-        msg = {'msg_type':"lidar_config"}
-        msg.update(DEFAULT_LIDAR_CONFIG)
-        self.send_now(json.dumps(msg))
+        if self.lidar_config['enabled']:
+            print('Sending LiDAR config')
+            msg = {'msg_type':"lidar_config"}
+            msg.update(DEFAULT_LIDAR_CONFIG)
+            self.send_now(json.dumps(msg))
 
 
         

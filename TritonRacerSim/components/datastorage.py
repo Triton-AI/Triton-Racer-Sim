@@ -10,7 +10,7 @@ import time
 import queue
 
 class DataStorage(Component):
-    def __init__(self, to_store=['cam/img', 'mux/throttle', 'mux/steering', 'mux/break', 'gym/speed', 'loc/segment', 'gym/x', 'gym/y', 'gym/z', 'gym/cte', 'loc/cte'], storage_path = None):
+    def __init__(self, to_store=['cam/img', 'mux/throttle', 'mux/steering', 'mux/break', 'gym/speed', 'loc/segment', 'gym/x', 'gym/y', 'gym/z', 'gym/cte', 'loc/cte', 'loc/break_indicator'], storage_path = None):
         super().__init__(inputs=to_store, threaded=False)
         self.step_inputs += ['usr/del_record', 'usr/toggle_record']
         self.on = True
@@ -18,7 +18,7 @@ class DataStorage(Component):
         os.mkdir(self.storage_path)
         self.count = 0
         self.recording = False
-        self.records_temp = queue.Queue() #temporary storage of records in memory, awaiting file io
+        self.records_temp = queue.Queue() # temporary storage of records in memory, awaiting file io
         self.file_thread = Thread(target=self.file_io_thread, daemon=True)
         self.file_thread.start()
 
