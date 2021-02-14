@@ -237,7 +237,7 @@ class ImageResizer(Component):
 
     def step(self, *args):
         if args[0] is not None:
-            return cv2.resize(args[0], self.target_res)
+            return cv2.resize(args[0], self.target_res),
 
     def getName(self):
         return 'Image Resizer'

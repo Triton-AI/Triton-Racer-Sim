@@ -128,6 +128,10 @@ def assemble_car(cfg = {}, args = {}, model_path = None):
             from TritonRacerSim.components.camera import Camera
             cam = Camera(cam_cfg)
             car.addComponent(cam)
+        elif cam_cfg['type'] == 'WEBCAM_OPENCV' and sub_board != 'ESP32':
+            from TritonRacerSim.components.camera import OpenCVCamera
+            cam = OpenCVCamera(cam_cfg)
+            car.addComponent(cam)
 
     lidar_cfg = cfg['simulator']['lidar']
     if cfg['I_am_on_simulator'] and lidar_cfg['enabled']:
@@ -149,7 +153,7 @@ def assemble_car(cfg = {}, args = {}, model_path = None):
         car.addComponent(tracker)
 
     # Final Image Scaler (Open CV Required)
-    if (cam_cfg['img_h'], cam_cfg['img_w']) != cam_cfg['native_resolution']:
+    if (cam_cfg['img_h'], cam_cfg['img_w']) != cam_cfg['native_resolution'] and cfg['I_am_on_simulator']:
         from TritonRacerSim.components.img_preprocessing import ImageResizer
         resizer = ImageResizer(cam_cfg)
         car.addComponent(resizer)
@@ -162,6 +166,13 @@ def assemble_car(cfg = {}, args = {}, model_path = None):
             original_data_storage = DataStorage(storage_path=storage.storage_path[0:-1]+'_original/')
             car.addComponent(original_data_storage)
     car.addComponent(storage)
+
+    # Image Feed Streamer
+    img_stm = cfg['stream_cam_feed']
+    if img_stm['enabled']:
+        from TritonRacerSim.components.cam_feed_streamer import CamFeedStreamer
+        streamer = CamFeedStreamer(img_stm)
+        car.addComponent(streamer)
 
     return car
 

@@ -77,11 +77,14 @@ simulator_autolaunch: # Let the program launches the simulator software for you.
 cam: # Camera setting for both real and simulator
   img_h: 120 # REAL OR SIMULATOR [Open-CV required if different than native]: Height after resizing and stored, excluding cropping in pre-processing
   img_w: 160 # REAL OR SIMULATOR [Open-CV required if different than native]: Width after resizing and stored, excluding cropping in pre-processing
-  type: 'WEBCAM' # REAL camera: WEBCAM | MOCK Put mock if the camera is not actually installed
+  type: 'WEBCAM' # REAL camera: WEBCAM | WEBCAM_OPENCV | MOCK Put mock if the camera is not actually installed
   native_resolution: [120, 160] # REAL OR SIMULATOR camera: Resolution of opening the camera, check with manufacturer for resolution support.
-  img_format: 'rgb' # REAL camera: RGB or grey
+  img_format: 'RGB' # REAL camera: RGB | YUV | HSV | MJPEG
   idx: 0 # REAL camera: Index of camera in the system
 
+stream_cam_feed:
+    enabled: false
+    port: 9094
 
 electronics: # On-board Electronics for REAL cars
   sub_board_type: 'ESP32' # PCA9685 | TEENSY | ESP32 | VESC # Who is responsible for sending PWM signals to the motor and servo?
@@ -186,6 +189,10 @@ img_preprocessing: # Preprocess image from either real camera or simulator
     threshold_a: 60 # Threshold used in OpenCV canny filter
     threshold_b: 100
     destination_channel: 2 # Which channel to put the filtered layer? 0 | 1 | 2 for RGB image
+
+  perspective_transform:
+    enabled: false
+    points: [0, 0, 0, 0]
 
 pid_pilot:
   steering:

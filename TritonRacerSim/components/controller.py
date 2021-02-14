@@ -204,9 +204,10 @@ class PS4Joystick(PygameJoystick):
         PygameJoystick.__init__(self, cfg)
 
     def map_steering(self, val):
-        if self.cfg['use_bluetooth']:
-            return val * -1
-        else : return val
+        # if self.cfg['use_bluetooth']:
+            # return val * -1
+        # else : 
+        return val
 
     def map_throttle(self, val):
         return val * -1

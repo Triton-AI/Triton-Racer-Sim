@@ -29,6 +29,8 @@ class DataStorage(Component):
         # store records
         elif args[-1]:          
             record = {self.step_inputs[i]: args[i] for i in range(len(self.step_inputs))}
+            #if record['cam/img'] is not None:
+            #    print(args[0].shape)
             self.records_temp.put(record)
             self.count += 1
 
@@ -75,6 +77,7 @@ class DataStorage(Component):
         img_string = 'cam/img' if 'cam/img' in record else 'cam/processed_img'
         if  record[img_string] is not None:
             img_path = path.join(self.storage_path, f'img_{count}.jpg')
+            # print(record[img_string].shape)
             Image.fromarray(record[img_string]).save(img_path)
             record[img_string] = f'img_{count}.jpg'
 
