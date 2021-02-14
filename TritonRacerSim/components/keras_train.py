@@ -480,7 +480,7 @@ class LSTMCallback(tf.keras.callbacks.Callback):
         self.model.get_layer('decoder').reset_states()
         print("Resetting states")
 
-def train(cfg, data_paths, model_path, transfer_path=None):
+def train(cfg, data_paths, model_path, transfer_path=None, shape=None):
     physical_devices = tf.config.list_physical_devices('GPU')
     if physical_devices:
         tf.config.experimental.set_memory_growth(physical_devices[0], True)
@@ -489,7 +489,10 @@ def train(cfg, data_paths, model_path, transfer_path=None):
     model = None
 
     model_type = ModelType(model_cfg['model_type'])
-    input_shape = calc_input_shape(cfg)
+    if shape is not None:
+        input_shape = int(shape[0]), int(shape[1]), 3
+    else:
+        input_shape = calc_input_shape(cfg)
     batch_size = model_cfg['batch_size']
     print (f"Input shape: {input_shape}")
 

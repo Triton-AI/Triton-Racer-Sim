@@ -75,16 +75,16 @@ simulator_autolaunch: # Let the program launches the simulator software for you.
   donkey_sim_full_path: 'remote' # Put "remote" will bypass this option. 
 
 cam: # Camera setting for both real and simulator
-  img_w: 160 # REAL OR SIMULATOR: Width after resizing and stored
-  img_h: 120 # REAL OR SIMULATOR: Height after resizing and stored
+  img_h: 120 # REAL OR SIMULATOR [Open-CV required if different than native]: Height after resizing and stored, excluding cropping in pre-processing
+  img_w: 160 # REAL OR SIMULATOR [Open-CV required if different than native]: Width after resizing and stored, excluding cropping in pre-processing
   type: 'WEBCAM' # REAL camera: WEBCAM | MOCK Put mock if the camera is not actually installed
-  native_resolution: [320, 240] # REAL camera: Resolution of opening the camera, check with manufacturer for resolution support
+  native_resolution: [120, 160] # REAL OR SIMULATOR camera: Resolution of opening the camera, check with manufacturer for resolution support.
   img_format: 'rgb' # REAL camera: RGB or grey
   idx: 0 # REAL camera: Index of camera in the system
 
 
 electronics: # On-board Electronics for REAL cars
-  sub_board_type: 'ESP32' # PCA9685 | TEENSY | ESP32 # Who is responsible for sending PWM signals to the motor and servo?
+  sub_board_type: 'ESP32' # PCA9685 | TEENSY | ESP32 | VESC # Who is responsible for sending PWM signals to the motor and servo?
   calibration: # PWM calibration values 
     max_forward_pwm: 420
     zero_throttle_pwm: 390
@@ -106,6 +106,20 @@ electronics: # On-board Electronics for REAL cars
     ip: '192.168.4.1'
     port: 9093
 
+  vesc:
+    port: '/dev/ttyACM0'
+    baudrate: 115200
+    has_sensor: false # Does your motor has built-in hall effect sensor? (encoder cable from back of motor to VESC)
+    enable_heartbeat: true # Would you like to enable heartbeat as a watchdog feature? (default to true)
+    ai_controls_speed: true # Is the AI model controlling the speed (RPM) or throttle (Duty Cycle)?
+    max_forward_rpm: 10000 # motor RPM limit
+    max_reverse_rpm: -5000 # motor RPM limit
+    max_left_angle: 0.1 # Ranging [0, 1] per PyVESC API
+    max_right_angle: 0.9 # Ranging [0, 1] per PyVESC API
+    neutral_angle: 0.5 # Ranging [0, 1] per PyVESC API
+    max_forward_current: 50 # mA. forward throttle
+    max_reverse_current: -50 # mA. reverse throttle
+
 
 ai_boost: # AI boost
   launch_throttle_lock: # Lock throttle when switching from ai-steering to full-ai mode
@@ -125,7 +139,7 @@ ai_boost: # AI boost
   thr_ctl_multiplier: 1.0 # Basic multiplier for throttle-based AI models, such as those from donkeycar
 
 location_tracker: # Give the relative location on the track as a segment number [0, 1] (% of track completed), and a cross-track error.
-  enabled: true
+  enabled: false
   seg_data_file: 'warehouse_center.json'
   cte_data_file: 'warehouse_center.json'
   break_region: # Region of segment tp signal the break indicator. Used in fullhouse model.
@@ -152,24 +166,26 @@ img_preprocessing: # Preprocess image from either real camera or simulator
     enabled: false # Automatically adjust the brightness of the image
     baseline: 550 # Ranging [0, 3*255]. Set the target average brightness for dynamic brightness adjustment.
   
+  ai_upscaling:
+    enabled: false
+    scale: 2 # 2 or 4
+    target_resolution: [240, 320]
+
+  crop: [0, 0, 0, 0] # Top, bottom, left, right; number of pixels to crop.
+
   color_filter:
     enabled: false # Filtering out the interested colors. Checkout Triton AI Color Filter Tutorial.
     # [WARNING] Upper and lower bounds must have the same number of 3-values. Please also mind the conversion from conventional to OpenCV HSV scale.
     hsv_upper_bounds: [[0, 0, 130],[25, 180, 155]] # OpenCV HSV upper bounds of each color detection. In this case white and yellow.
     hsv_lower_bounds: [[180, 64, 255], [43, 255, 255]] # OpenCV HSV lower bounds of each color detection. In this case white and yellow.
     destination_channels: [0, 1] # Which channel(s) to put the filtered layers? 0 | 1 | 2 for RGB image. Must match the number of hsv filters above.)
+    display_method: 'overlay' # overlay | overwrite
   
   edge_detection:
     enabled: false # Apply a canny filter for edge detection
     threshold_a: 60 # Threshold used in OpenCV canny filter
     threshold_b: 100
     destination_channel: 2 # Which channel to put the filtered layer? 0 | 1 | 2 for RGB image
-
-  crop: [0, 0, 0, 0] # Top, bottom, left, right; number of pixels to crop.
-
-  ai_upscaling:
-    enabled: false
-    scale: 2 # 2 or 4
 
 pid_pilot:
   steering:

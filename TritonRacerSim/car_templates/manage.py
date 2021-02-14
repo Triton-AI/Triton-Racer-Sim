@@ -3,10 +3,10 @@ Scripts to drive a triton racer car
 
 Usage:
     manage.py (drive) [--model=<model>] [--dummy]
-    manage.py (train) (--tub=<tub1,tub2,..tubn>) (--model=<model>) [--transfer=<model>]
+    manage.py (train) (--tub=<tub1,tub2,..tubn>) (--model=<model>) [--transfer=<model>] [--shape=<height,width>]
     manage.py (generateconfig)
     manage.py (postprocess) (--source=<original_data_folder>) (--destination=<processed_data_folder>) [--filter] [--latency]
-    manage.py (calibrate) [--steering] [--throttle]
+    manage.py (calibrate) [--steering] [--throttle] [--rpm]
     manage.py (processtrack) (--tub=<data_folder>) (--output=<track_json_file>)
     manage.py (joystick) [--dump]
 """
@@ -107,7 +107,7 @@ def assemble_car(cfg = {}, args = {}, model_path = None):
     else:
         sub_board = cfg['electronics']['sub_board_type']
         if sub_board == 'PCA9685':
-            pass #TODO
+            raise NotImplementedError()
         if sub_board == 'TEENSY':
             from TritonRacerSim.components.teensy import TeensyMC_Test
             teensy = TeensyMC_Test(cfg['electronics'])
@@ -116,6 +116,12 @@ def assemble_car(cfg = {}, args = {}, model_path = None):
             from TritonRacerSim.components.esp32_cam import ESP32CAM
             esp = ESP32CAM(cfg['electronics'])
             car.addComponent(esp)
+        elif sub_board == 'VESC':
+            from TritonRacerSim.components.vesc import VESC_
+            v = VESC_(cfg['electronics']['vesc'])
+            car.addComponent(v)
+        else:
+            raise Exception(f"Sub-board type not recognized: {sub_board}.")
 
         cam_cfg = cfg['cam']
         if cam_cfg['type'] == 'WEBCAM' and sub_board != 'ESP32':
@@ -129,7 +135,7 @@ def assemble_car(cfg = {}, args = {}, model_path = None):
         lidar = DonkeySimLiDAR(lidar_cfg)
         car.addComponent(lidar)
 
-    #Image preprocessing
+    #Image preprocessing (Open CV Required)
     prep_cfg = cfg['img_preprocessing']
     if prep_cfg['enabled']:
         from TritonRacerSim.components.img_preprocessing import ImgPreprocessing
@@ -141,6 +147,12 @@ def assemble_car(cfg = {}, args = {}, model_path = None):
     if loc_cfg['enabled']:
         tracker = LocationTracker(loc_cfg)
         car.addComponent(tracker)
+
+    # Final Image Scaler (Open CV Required)
+    if (cam_cfg['img_h'], cam_cfg['img_w']) != cam_cfg['native_resolution']:
+        from TritonRacerSim.components.img_preprocessing import ImageResizer
+        resizer = ImageResizer(cam_cfg)
+        car.addComponent(resizer)
 
     # Data storage
     storage = DataStorage()
@@ -196,9 +208,13 @@ if __name__ == '__main__':
 
             from TritonRacerSim.components.keras_train import train
             transfer_path=None
+            shape=None
             if (args['--transfer']):
                 transfer_path = args['--transfer']
-            train(cfg, data_paths, model_path, transfer_path)
+
+            if args['--shape']:
+                shape = args['--shape'].split(',')
+            train(cfg, data_paths, model_path, transfer_path, shape)
 
         elif args['calibrate']:
             from TritonRacerSim.utils.calibrate import calibrate
