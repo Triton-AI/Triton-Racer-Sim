@@ -5,7 +5,7 @@ Usage:
     manage.py (drive) [--model=<model>] [--dummy]
     manage.py (train) (--tub=<tub1,tub2,..tubn>) (--model=<model>) [--transfer=<model>] [--shape=<height,width>]
     manage.py (generateconfig)
-    manage.py (postprocess) (--source=<original_data_folder>) (--destination=<processed_data_folder>) [--filter] [--latency]
+    manage.py (postprocess) (--source=<original_data_folder>) (--destination=<processed_data_folder>) [--filter] [--latency] [--resize]
     manage.py (calibrate) [--steering] [--throttle] [--rpm]
     manage.py (processtrack) (--tub=<data_folder>) (--output=<track_json_file>)
     manage.py (joystick) [--dump]
@@ -239,6 +239,10 @@ if __name__ == '__main__':
             elif args['--latency']:
                 from TritonRacerSim.utils.post_process import shift_latency
                 shift_latency(args['--source'], args['--destination'])
+
+            elif args['--resize']:
+                from TritonRacerSim.utils.post_process import post_process_resize
+                post_process_resize(args['--source'], args['--destination'], cfg['cam'])
 
         elif args['joystick']:
             from TritonRacerSim.components.controller import CustomJoystickCreator

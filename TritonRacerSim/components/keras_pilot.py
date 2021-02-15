@@ -46,6 +46,7 @@ class KerasPilot(Component):
         self.speed_control_break_multiplier = spd_cfg['break_multiplier']
         self.speed_mean = spd_cfg['train_speed_mean']
         self.speed_offset = spd_cfg['train_speed_offset']
+        self.speed_categories = spd_cfg['categorical_speed_control']['intervals']
 
         smooth_cfg = cfg['ai_boost']['smooth_steering']
         self.smooth_steering = smooth_cfg['enabled']
@@ -54,6 +55,8 @@ class KerasPilot(Component):
 
         model_cfg = cfg['ai_model']
         self.from_donkey = model_cfg['from_donkey']
+
+
 
         if self.smooth_steering:
             print('[WARNING] Smooth-Steering Enabled')
@@ -161,6 +164,18 @@ class KerasPilot(Component):
                 steering = self.__smooth_steering(steering)
 
                 return steering, None, None, speed
+
+            elif self.model == ModelType.RESNET_CATEGORICAL_SPEED_CONTROL:
+                img_arr = preprocess_input(img_arr)
+                real_spd = args[1]
+                steering_and_speed = self.model(img_arr)
+                steering = self.__cap(steering_and_speed[0].numpy()[0])
+                predicted_speed_category = np.argmax(steering_and_speed[1].numpy())
+                predicted_speed = self.speed_categories[predicted_speed_category + 1]
+                # print (f'Spd: {real_spd}, Pred: {predicted_speed}, Str: {steering} \r', end='')
+                #print (f'Thr: {throttle}, Brk: {breaking} \r', end='')
+                steering = self.__smooth_steering(steering)
+                return steering, None, None, predicted_speed
 
         return 0.0, 0.0, 0.0, 0.0
 

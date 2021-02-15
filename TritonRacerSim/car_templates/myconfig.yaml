@@ -39,6 +39,8 @@ speed_control: # Speed-based control params (for speed control and full house mo
     kd: 0.05
   train_speed_mean: 10 # Normalization of speed data
   train_speed_offset: -1 # Normalization of speed data
+  categorical_speed_control:
+    intervals: [0, 15000, 30000] # Max value of each bin. e.g. [0, 15000, 30000] means bin 1 is between 0 and 15000, and bin 2 is between [15000, 30000]
 
 
 simulator: # DonkeyGym simulator settings
@@ -117,7 +119,7 @@ electronics: # On-board Electronics for REAL cars
     baudrate: 115200
     has_sensor: false # Does your motor has built-in hall effect sensor? (encoder cable from back of motor to VESC)
     enable_heartbeat: true # Would you like to enable heartbeat as a watchdog feature? (default to true)
-    ai_controls_speed: true # Is the AI model controlling the speed (RPM) or throttle (Duty Cycle)?
+    ai_controls_speed: true # Is the AI model controlling the speed (RPM) or throttle (current)?
     max_forward_rpm: 10000 # motor RPM limit
     max_reverse_rpm: -5000 # motor RPM limit
     max_left_angle: 0.1 # Ranging [0, 1] per PyVESC API
@@ -149,7 +151,7 @@ location_tracker: # Give the relative location on the track as a segment number 
   enabled: false
   seg_data_file: 'warehouse_center.json'
   cte_data_file: 'warehouse_center.json'
-  break_region: # Region of segment tp signal the break indicator. Used in fullhouse model.
+  break_region: # Region of segment to signal the break indicator. Used in fullhouse model.
     - null # Comment this out in actual use
     - [0.1, 0.2]
 
