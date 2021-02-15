@@ -298,8 +298,8 @@ class SpeedFeatureDataLoader(DataLoader):
         return np.asarray((record['gym/speed'],))
     
 class SpeedCtlDataLoader(DataLoader):
-    def __init__(self, *paths):
-        DataLoader.__init__(self, *paths, mean, offset)
+    def __init__(self, mean, offset, *paths):
+        DataLoader.__init__(self, *paths)
         self.mean = mean
         self.offset = offset
 
@@ -505,7 +505,7 @@ def train(cfg, data_paths, model_path, transfer_path=None, shape=None):
         loader = SpeedFeatureDataLoader(*data_paths)
         model = Keras_2D_CNN.get_model(input_shape=input_shape, num_outputs=2, num_feature_vectors=1)
     elif model_type == ModelType.CNN_2D_SPD_CTL:
-        loader = SpeedCtlDataLoader(*data_paths, cfg['speed_control']['train_speed_mean'], cfg['speed_control']['train_speed_offset'])
+        loader = SpeedCtlDataLoader(cfg['speed_control']['train_speed_mean'], cfg['speed_control']['train_speed_offset'], *data_paths)
         model = Keras_2D_CNN.get_model(input_shape=input_shape, num_outputs=2, num_feature_vectors=0)
     elif model_type == ModelType.CNN_2D_FULL_HOUSE:
         loader = FullHouseDataLoader(*data_paths)
