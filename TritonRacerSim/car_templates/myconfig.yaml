@@ -125,7 +125,8 @@ electronics: # On-board Electronics for REAL cars
     neutral_angle: 0.5 # Ranging [0, 1] per PyVESC API
     max_forward_current: 50 # mA. forward throttle
     max_reverse_current: -50 # mA. reverse throttle
-
+    inverted: false
+    break_as_deadman_switch: false # Use the breaking axis as a deadman switch ( pull to above 0.8 to activate ai)
 
 ai_boost: # AI boost
   launch_throttle_lock: # Lock throttle when switching from ai-steering to full-ai mode
