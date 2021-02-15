@@ -37,6 +37,8 @@ speed_control: # Speed-based control params (for speed control and full house mo
     kp: 1.0
     ki: 0.1
     kd: 0.05
+  train_speed_mean: 10 # Normalization of speed data
+  train_speed_offset: -1 # Normalization of speed data
 
 
 simulator: # DonkeyGym simulator settings

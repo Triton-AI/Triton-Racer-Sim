@@ -6,7 +6,7 @@ import numpy as np
 
 class Camera(Component):
     def __init__(self, cfg):
-        super().__init__(inputs=[], outputs=['cam/img', ], threaded=True)
+        super().__init__(inputs=[], outputs=['cam/img', 'cam/original_img'], threaded=True)
         self.img_w = cfg['img_w']
         self.img_h = cfg['img_h']
         self.image_format = cfg['img_format']
@@ -16,6 +16,7 @@ class Camera(Component):
         print ("Using camera %s ..." % cameras[cfg['idx']])
         self.webcam = camera.Camera(cameras[cfg['idx']], cfg['native_resolution'], cfg['img_format'])
         self.processed_frame = None
+        self.original_frame = None
         self.on = True
 
     def onStart(self):
@@ -26,7 +27,7 @@ class Camera(Component):
         """The component's behavior in the main loop"""
         #if self.processed_frame is not None:
         #   print(self.processed_frame.shape)
-        return self.processed_frame,
+        return self.processed_frame, self.original_frame
 
     def thread_step(self):
         """The component's behavior in its own thread"""
@@ -37,6 +38,7 @@ class Camera(Component):
             processed_surface = pygame.transform.scale(original_frame, (self.img_w, self.img_h))
             #duration = time.time() - start_time
             #print (duration)
+            self.original_frame = np.asarray(pygame.surfarray.array3d(original_frame))
             self.processed_frame = np.asarray(pygame.surfarray.array3d(processed_surface))
             # print (self.processed_frame.shape)
             #time.sleep(0.01)
@@ -52,7 +54,7 @@ class OpenCVCamera(Component):
 
     def __init__(self, cfg):
         import cv2
-        super().__init__(inputs=[], outputs=['cam/img', ], threaded=True)
+        super().__init__(inputs=[], outputs=['cam/img', 'cam/original_img'], threaded=True)
         self.img_w = cfg['img_w']
         self.img_h = cfg['img_h']
         self.native_w, self.native_h = cfg['native_resolution']
@@ -67,6 +69,7 @@ class OpenCVCamera(Component):
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.native_h)
 
         self.processed_frame = None
+        self.original_frame = None
         self.on = True
 
     def onStart(self):
@@ -77,7 +80,7 @@ class OpenCVCamera(Component):
         """The component's behavior in the main loop"""
         #if self.processed_frame is not None:
         #   print(self.processed_frame.shape)
-        return self.processed_frame,
+        return self.processed_frame, self.original_frame
 
     def thread_step(self):
         """The component's behavior in its own thread"""
@@ -86,10 +89,12 @@ class OpenCVCamera(Component):
             rval, original_frame = self.cap.read()
             # if not rval: raise Exception("OpenCV Image Capture Error")
             if original_frame is not None:
+                self.original_frame = original_frame
                 original_frame = cv2.resize(original_frame, (self.img_w, self.img_h))
                 self.processed_frame = cv2.cvtColor(original_frame, cv2.COLOR_BGR2RGB)
             else:
                 self.processed_frame = None
+                self.original_frame = None
 
     def onShutdown(self):
         """Shutdown"""

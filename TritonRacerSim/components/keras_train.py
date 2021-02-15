@@ -136,7 +136,7 @@ class Keras_2D_CNN(Component):
         
         drop = 0.1
 
-        # x = Rescaling(scale=1.0/255)(inputs)
+        x = Rescaling(scale=1./255)(inputs)
         x = Conv2D(filters=24, kernel_size=(5, 5), strides=(2,2),activation='relu', name='conv1')(inputs)
         x = Dropout(drop)(x)
         x = Conv2D(filters=32, kernel_size=(5, 5), strides=(2,2),activation='relu', name='conv2')(x)
@@ -299,10 +299,12 @@ class SpeedFeatureDataLoader(DataLoader):
     
 class SpeedCtlDataLoader(DataLoader):
     def __init__(self, *paths):
-        DataLoader.__init__(self, *paths)
+        DataLoader.__init__(self, *paths, mean, offset)
+        self.mean = mean
+        self.offset = offset
 
     def get_labels_from_record(self, record={}):
-        return np.asarray((record['mux/steering'], (record['gym/speed'] / 10.0) - 1.0)) # Adjust the input range to be [0, 1]
+        return np.asarray((record['mux/steering'], (record['gym/speed'] / self.mean) - self.offset)) # Adjust the input range to be [0, 1]
 
 class SpeedCtlBreakIndicationDataLoader(DataLoader):
     def __init__(self, *paths):
@@ -503,7 +505,7 @@ def train(cfg, data_paths, model_path, transfer_path=None, shape=None):
         loader = SpeedFeatureDataLoader(*data_paths)
         model = Keras_2D_CNN.get_model(input_shape=input_shape, num_outputs=2, num_feature_vectors=1)
     elif model_type == ModelType.CNN_2D_SPD_CTL:
-        loader = SpeedCtlDataLoader(*data_paths)
+        loader = SpeedCtlDataLoader(*data_paths, cfg['speed_control']['train_speed_mean'], cfg['speed_control']['train_speed_offset'])
         model = Keras_2D_CNN.get_model(input_shape=input_shape, num_outputs=2, num_feature_vectors=0)
     elif model_type == ModelType.CNN_2D_FULL_HOUSE:
         loader = FullHouseDataLoader(*data_paths)
@@ -540,7 +542,7 @@ def calc_input_shape(cfg):
     cam_cfg = cfg['cam']
     width = cam_cfg['img_w']
     height = cam_cfg['img_h']
-    channel = 3 if cam_cfg['img_format'] == 'rgb' else 1
+    channel = 1 if cam_cfg['img_format'] == 'GREY' else 3
 
     if cfg['img_preprocessing']['enabled']:
         t, b, l, r = cfg['img_preprocessing']['crop']

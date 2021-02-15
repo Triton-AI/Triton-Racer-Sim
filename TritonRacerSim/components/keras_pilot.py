@@ -4,6 +4,7 @@ import queue
 from os import path
 import numpy as np
 from PIL import Image
+import cv2
 import tensorflow as tf
 
 from tensorflow.python.keras.models import load_model
@@ -43,6 +44,8 @@ class KerasPilot(Component):
         self.speed_control_break = spd_cfg['break']
         self.speed_control_reverse_multiplier = spd_cfg['reverse_multiplier']
         self.speed_control_break_multiplier = spd_cfg['break_multiplier']
+        self.speed_mean = spd_cfg['train_speed_mean']
+        self.speed_offset = spd_cfg['train_speed_offset']
 
         smooth_cfg = cfg['ai_boost']['smooth_steering']
         self.smooth_steering = smooth_cfg['enabled']
@@ -108,7 +111,7 @@ class KerasPilot(Component):
                 real_spd = args[1]
                 steering_and_speed = self.model(img_arr)
                 steering = self.__cap(steering_and_speed.numpy()[0][0])
-                predicted_speed = (steering_and_speed.numpy()[0][1] + 1.0) * 10.0
+                predicted_speed = (steering_and_speed.numpy()[0][1] + self.speed_offset) * self.speed_mean
 
                 # print (f'Spd: {real_spd}, Pred: {predicted_speed}, Str: {steering} \r', end='')
                 #print (f'Thr: {throttle}, Brk: {breaking} \r', end='')

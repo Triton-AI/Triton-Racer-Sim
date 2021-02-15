@@ -32,10 +32,10 @@ class VESC_(Component):
     def step(self, *args):
         str, thr, ai_spd, mode = args
         if mode == DriveMode.AI and self.spd_ctl:
-            if self.max_rev <= ai_spd <= self.max_fwd * 1.1:
-                self.v.set_rpm(ai_spd)
-            else:
-                self.v.set_rpm(0)
+            #if self.max_rev <= ai_spd <= self.max_fwd * 1.1:
+            self.v.set_rpm(int(ai_spd))
+            #else:
+                #self.v.set_rpm(0)
         #elif self.curr_rpm > self.max_fwd:
         #    self.v.set_rpm(self.max_fwd)
         #elif self.curr_rpm < self.max_rev:
