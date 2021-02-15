@@ -85,6 +85,7 @@ cam: # Camera setting for both real and simulator
 stream_cam_feed:
     enabled: false
     port: 9094
+    image_topic: 'cam/img' # 'cam/img' | 'cam/original_img' | 'cam/processed_img'
 
 electronics: # On-board Electronics for REAL cars
   sub_board_type: 'ESP32' # PCA9685 | TEENSY | ESP32 | VESC # Who is responsible for sending PWM signals to the motor and servo?

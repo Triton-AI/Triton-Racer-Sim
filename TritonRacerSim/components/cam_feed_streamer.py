@@ -9,7 +9,7 @@ from TritonRacerSim.components.component import Component
 
 class CamFeedStreamer(Component):
     def __init__(self, cfg):
-        Component.__init__(self, inputs=['cam/img'], threaded=True)
+        Component.__init__(self, inputs=[cfg['image_topic']], threaded=True)
         self.frame = None
         self.on = True
         self.port = cfg['port']
@@ -35,7 +35,7 @@ class CamFeedStreamer(Component):
                         data = base64.b64encode(self.frame)
                         self.conn.sendall(bytes(data.decode('utf-8')+'\n', 'utf-8'))
                     time.sleep(0.02)
-            except ConnectionResetError:
+            except (ConnectionResetError, BrokenPipeError):
                 print(f"[Camera Feed Streamer] Viewer at {addr} is disconnected.")
                 continue
             finally:
