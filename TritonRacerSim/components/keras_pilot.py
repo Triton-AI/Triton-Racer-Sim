@@ -4,6 +4,7 @@ import queue
 from os import path
 import numpy as np
 from PIL import Image
+import cv2
 import tensorflow as tf
 
 from tensorflow.python.keras.models import load_model
@@ -18,14 +19,14 @@ from TritonRacerSim.components.keras_train import KerasResNetLSTM
 
 class KerasPilot(Component):
     def __init__(self, cfg, model_path, model_type):
-        inputs = ['cam/img', 'gym/speed', 'loc/segment', 'gym/cte', 'usr/mode']
+        inputs = ['cam/img', 'gym/speed', 'loc/segment', 'loc/break_indicator', 'usr/mode']
         outputs = ['ai/steering', 'ai/throttle', 'ai/breaking', 'ai/speed']
         self.model_type = model_type
         if model_type == ModelType.CNN_2D:
             pass
+        Component.__init__(self, inputs=inputs, outputs=outputs, threaded=False)
         if cfg['img_preprocessing']['enabled']:
             self.step_inputs[0] = 'cam/processed_img'
-        Component.__init__(self, inputs=inputs, outputs=outputs, threaded=False)
         self.model = None
         if self.model_type == ModelType.LSTM:
             self.model = KerasResNetLSTM.get_model((cfg['cam']['img_h'], cfg['cam']['img_w'], 3), cfg['ai_model']['embedding_size'], 1)
@@ -43,6 +44,8 @@ class KerasPilot(Component):
         self.speed_control_break = spd_cfg['break']
         self.speed_control_reverse_multiplier = spd_cfg['reverse_multiplier']
         self.speed_control_break_multiplier = spd_cfg['break_multiplier']
+        self.speed_mean = spd_cfg['train_speed_mean']
+        self.speed_offset = spd_cfg['train_speed_offset']
 
         smooth_cfg = cfg['ai_boost']['smooth_steering']
         self.smooth_steering = smooth_cfg['enabled']
@@ -86,7 +89,7 @@ class KerasPilot(Component):
                     throttle = self.__cap(steering_and_throttle[1].numpy()[0][0]) * self.thr_ctl_multiplier
 
                 #steering = self.__smooth_steering(steering)
-                print (f'Str: {steering}, Thr: {throttle} \r', end='')
+                # print (f'Str: {steering}, Thr: {throttle} \r', end='')
 
                 return steering, throttle, 0.0, 0.0
 
@@ -108,9 +111,9 @@ class KerasPilot(Component):
                 real_spd = args[1]
                 steering_and_speed = self.model(img_arr)
                 steering = self.__cap(steering_and_speed.numpy()[0][0])
-                predicted_speed = steering_and_speed.numpy()[0][1] * 20
+                predicted_speed = (steering_and_speed.numpy()[0][1] + self.speed_offset) * self.speed_mean
 
-                # print (f'Spd: {real_spd}, Pred: {predicted_speed} \r', end='')
+                # print (f'Spd: {real_spd}, Pred: {predicted_speed}, Str: {steering} \r', end='')
                 #print (f'Thr: {throttle}, Brk: {breaking} \r', end='')
                 steering = self.__smooth_steering(steering)
                 return steering, None, None, predicted_speed
@@ -119,13 +122,11 @@ class KerasPilot(Component):
                 # print (args[1], args[2], args[3])
                 img_arr /= 255
                 real_spd = args[1]
-                spd = np.asarray(real_spd/20, dtype=np.float32)
-                spd = spd.reshape((1,) + spd.shape)
-                features = np.asarray((args[2],), dtype=np.float32)
+                features = np.asarray((args[3],))
                 features = features.reshape((1,) + features.shape)
-                steering_and_speed = self.model((img_arr, spd, features))
+                steering_and_speed = self.model((img_arr, features))
                 steering = self.__cap(steering_and_speed.numpy()[0][0])
-                predicted_speed = steering_and_speed.numpy()[0][1] * 20
+                predicted_speed = (steering_and_speed.numpy()[0][1] + 1.0) * 10.0
                 # print (f'Spd: {real_spd}, Pred: {predicted_speed} \r', end='')
 
                 steering = self.__smooth_steering(steering)
@@ -144,8 +145,23 @@ class KerasPilot(Component):
                 steering, throttle = self.__cap(steering_and_throttle.numpy()[0][0]), self.__cap(steering_and_throttle.numpy()[0][1])
 
                 steering = self.__smooth_steering(steering)
-                print (f'Str: {steering}, Thr: {throttle}\r', end='')
+                # print (f'Str: {steering}, Thr: {throttle}\r', end='')
                 return steering, throttle, 0.0, 0.0
+
+            elif self.model_type == ModelType.CNN_2D_SPD_CTL_BREAK_INDICATION:
+                img_arr /= 255
+                ind = np.asarray((args[1] / 20,), dtype=np.float32)
+                ind = ind.reshape((1,) + ind.shape) 
+                # print (img_arr.shape)
+                steering_and_throttle = self.model((img_arr, ind))
+                steering = self.__cap(steering_and_throttle.numpy()[0][0])
+                speed = steering_and_throttle.numpy()[0][1]
+                speed = (speed + 1.0) * 20
+
+                steering = self.__smooth_steering(steering)
+
+                return steering, None, None, speed
+
         return 0.0, 0.0, 0.0, 0.0
 
     def onStart(self):

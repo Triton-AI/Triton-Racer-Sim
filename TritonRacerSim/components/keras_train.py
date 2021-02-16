@@ -17,7 +17,7 @@ from tensorflow.keras.models import Model
 from tensorflow.python.keras.layers.merge import concatenate
 from tensorflow.python.keras.models import load_model
 from tensorflow.keras import layers
-from tensorflow.keras.applications.resnet_v2 import ResNet50V2, preprocess_input
+from tensorflow.keras.applications.resnet import ResNet50, preprocess_input
 from tensorflow.keras.layers.experimental.preprocessing import Resizing
 
 from TritonRacerSim.components.controller import DriveMode
@@ -136,12 +136,12 @@ class Keras_2D_CNN(Component):
         
         drop = 0.1
 
-        # x = Rescaling(scale=1.0/255)(inputs)
+        x = Rescaling(scale=1./255)(inputs)
         x = Conv2D(filters=24, kernel_size=(5, 5), strides=(2,2),activation='relu', name='conv1')(inputs)
         x = Dropout(drop)(x)
         x = Conv2D(filters=32, kernel_size=(5, 5), strides=(2,2),activation='relu', name='conv2')(x)
         x = Dropout(drop)(x)
-        x = Conv2D(filters=64, kernel_size=(5, 5), strides=(2,2),activation='relu', name='conv3')(x)
+        x = Conv2D(filters=64, kernel_size=(3, 3), strides=(1,1),activation='relu', name='conv3')(x)
         x = Dropout(drop)(x)
         x = Conv2D(filters=64, kernel_size=(3, 3), strides=(1,1),activation='relu', name='conv4')(x)
         x = Dropout(drop)(x)
@@ -166,7 +166,7 @@ class Keras_2D_CNN(Component):
         z = Dropout(drop)(z)
         z = Dense(50, activation='relu', name = 'dense2')(z)
         z = Dropout(drop)(z)      
-        z = Dense(25, activation='relu', name = 'dense3')(z)
+        z = Dense(25, activation='linear', name = 'dense3')(z)
         z = Dropout(drop)(z)
         
 
@@ -197,7 +197,7 @@ class Keras_2D_FULL_HOUSE(Component):
         x = Dropout(drop)(x)
         x = Conv2D(filters=32, kernel_size=(5, 5), strides=(2,2),activation='relu', name='conv2')(x)
         x = Dropout(drop)(x)
-        x = Conv2D(filters=64, kernel_size=(5, 5), strides=(2,2),activation='relu', name='conv3')(x)
+        x = Conv2D(filters=64, kernel_size=(3, 3), strides=(1,1),activation='relu', name='conv3')(x)
         x = Dropout(drop)(x)
         x = Conv2D(filters=64, kernel_size=(3, 3), strides=(1,1),activation='relu', name='conv4')(x)
         x = Dropout(drop)(x)
@@ -213,9 +213,11 @@ class Keras_2D_FULL_HOUSE(Component):
 
 
         feature_inputs = Input(shape=(1,), name='feature_vec_input')
-        y = Dense(16, activation='relu', name='feature1')(feature_inputs)
+        y = Embedding(2, 16)(feature_inputs)
+        y = Dense(16, activation='relu', name='feature1')(y)
         y = Dense(32, activation='relu', name='feature2')(y)
         y = Dense(64, activation='relu', name='feature3')(y)
+        y = tf.squeeze(y, axis=1)
 
         x = Concatenate(axis=1)([x, y])
       
@@ -224,29 +226,12 @@ class Keras_2D_FULL_HOUSE(Component):
         z = Dropout(drop)(z)
         z = Dense(50, activation='relu', name = 'dense2')(z)
         z = Dropout(drop)(z)      
-        z = Dense(25, activation='relu', name = 'dense3')(z)
+        z = Dense(25, activation='linear', name = 'dense3')(z)
         z = Dropout(drop)(z)
         
-        out_speed = Dense(1, activation='linear', name='output_speed')(z)
-
-        current_spd_input = Input(shape=(1,), name='current_spd_input')
-        s = Dense(16, activation='relu', name='current_spd_1')(current_spd_input)
-        s = Dense(32, activation='relu', name='current_spd_2')(s)
-        s = Dense(64, activation='relu', name='current_spd_3')(s)
-        
-        s = Concatenate(axis=1)([x,s])
-        s = Dense (100, activation='relu', name = 'dense4')(s)
-        s = Dropout(drop)(s)
-        s = Dense(50, activation='relu', name = 'dense5')(s)
-        s = Dropout(drop)(s) 
-        s = Dense(25, activation='relu', name = 'dense6')(s)
-        s = Dropout(drop)(s)
-
-        out_steering = Dense(1, activation='linear', name='out_steering')(s)
-
-        outputs = Concatenate(axis=1)([out_steering, out_speed])
+        outputs = Dense(2, activation='linear', name='output')(z)
             
-        model = Model(inputs=[inputs, current_spd_input, feature_inputs], outputs=[outputs])
+        model = Model(inputs=[inputs, feature_inputs], outputs=[outputs,])
         
         return model
 
@@ -263,10 +248,10 @@ class KerasResNetLSTM:
         img_input = Input(name='img_input', batch_input_shape=(batch_size, *input_shape))
         resize = Resizing(224, 224)
         current_spd_input = Input(shape=(1,), name='current_spd_input')
-        encoder = ResNet50V2(include_top=True, weights='imagenet', classifier_activation='linear')
+        encoder = ResNet50(include_top=True, weights='imagenet', classifier_activation='linear')
         fc = Dense(embedding_size, activation='linear', name='encoder_out')
         for layer in encoder.layers: layer.trianable = False
-        embed = Embedding(3000, int(embedding_size/2))
+        embed = Embedding(100, int(embedding_size/2))
         encoder.layers[-1].trainable = True
         decoder1 = LSTM(512, stateful=True, name='decoder')
         fc1 = Dense(100, activation='relu', name='dense1')
@@ -276,7 +261,7 @@ class KerasResNetLSTM:
         x = resize(img_input)
         x = encoder(x)
         x = fc(x)
-        y = embed(current_spd_input * 100)
+        y = embed(current_spd_input)
         x = tf.expand_dims(x, axis=1)
         x = Concatenate(axis=2)([x, y])
         x= decoder1(x)
@@ -310,15 +295,28 @@ class SpeedFeatureDataLoader(DataLoader):
         DataLoader.__init__(self, *paths)
     def get_features_from_record(self,record={}):
         '''Any additional features are we looking for?'''
-        return np.asarray((record['gym/speed'] / 20,))
+        return np.asarray((record['gym/speed'],))
     
 class SpeedCtlDataLoader(DataLoader):
+    def __init__(self, mean, offset, *paths):
+        DataLoader.__init__(self, *paths)
+        self.mean = mean
+        self.offset = offset
+
+    def get_labels_from_record(self, record={}):
+        return np.asarray((record['mux/steering'], (record['gym/speed'] / self.mean) - self.offset)) # Adjust the input range to be [0, 1]
+
+class SpeedCtlBreakIndicationDataLoader(DataLoader):
     def __init__(self, *paths):
         DataLoader.__init__(self, *paths)
 
+    def get_features_from_record(self,record={}):
+        '''Any additional features are we looking for?'''
+        return np.asarray((record['loc/break_indicator']))
+
     def get_labels_from_record(self, record={}):
-        return np.asarray((record['mux/steering'], record['gym/speed'] / 20)) # Adjust the input range to be [0, 1]
-    
+        return np.asarray((record['mux/steering'], (record['gym/speed'] / 10.0) - 1.0)) # Adjust the input range to be [0, 1]
+
 class LocalizationDemoDataLoader(DataLoader):
     def __init__(self, *paths):
         DataLoader.__init__(self, *paths)
@@ -337,10 +335,10 @@ class FullHouseDataLoader(DataLoader):
     
     def get_features_from_record(self,record={}):
         '''Any additional features are we looking for?'''
-        return np.asarray((record['gym/speed'] / 20, record['loc/segment']))
+        return np.asarray((record['loc/break_indicator'],))
     
     def get_labels_from_record(self, record={}):
-        return np.asarray((record['mux/steering'], record['gym/speed'] / 20))
+        return np.asarray((record['mux/steering'], (record['gym/speed'] / 10) - 1.0))
 
     def load(self, train_val_split = 0.8, batch_size = 128):
         print ('Loading records...')
@@ -375,7 +373,6 @@ class FullHouseDataLoader(DataLoader):
         train_set, val_set = train_test_split(self.dataset, train_size = split)
 
         train_examples = []
-        train_example_spds = []
         train_example_vecs = []
         train_labels = []
 
@@ -386,28 +383,24 @@ class FullHouseDataLoader(DataLoader):
         
         for data in train_set:
             train_examples.append(data[0])
-            train_example_vecs.append(np.asarray(data[1][1]))
-            train_example_spds.append(np.asarray(data[1][0]))
+            train_example_vecs.append(np.asarray(data[1][0]))
             train_labels.append(data[2])
 
         for data in val_set:
             val_examples.append(data[0])
-            val_example_spds.append(np.asarray(data[1][0]))
-            val_example_vecs.append(np.asarray(data[1][1]))
+            val_example_vecs.append(np.asarray(data[1][0]))
             val_labels.append(data[2])
 
         train_examples = np.stack(train_examples, axis=0)
         train_labels = np.stack(train_labels, axis=0)
         train_example_vecs = np.stack(train_example_vecs, axis=0)
-        train_example_spds = np.stack(train_example_spds, axis=0)
 
         val_examples = np.stack(val_examples, axis=0)
         val_labels = np.stack(val_labels, axis=0)
         val_example_vecs = np.stack(val_example_vecs, axis=0)
-        val_example_spds = np.stack(val_example_spds, axis=0)
 
-        self.train_dataset = tf.data.Dataset.from_tensors(((train_examples, train_example_spds, train_example_vecs), train_labels))
-        self.val_dataset = tf.data.Dataset.from_tensors(((val_examples,val_example_spds, val_example_vecs), val_labels)) 
+        self.train_dataset = tf.data.Dataset.from_tensors(((train_examples, train_example_vecs), train_labels))
+        self.val_dataset = tf.data.Dataset.from_tensors(((val_examples,val_example_vecs), val_labels)) 
 
 class LSTMDataLoader(DataLoader):
     def __init__(self, *paths):
@@ -476,7 +469,7 @@ class LSTMDataLoader(DataLoader):
         return f'record_{idx}.json'
 
     def get_labels_from_record(self, record={}):
-        return record['mux/steering'], record['mux/throttle'] # Adjust the input range to be [0, 1]
+        return record['mux/steering'], record['gym/speed'] # Adjust the input range to be [0, 1]
 
     def get_features_from_record(self,record={}):
         '''Any additional features are we looking for?'''
@@ -489,27 +482,30 @@ class LSTMCallback(tf.keras.callbacks.Callback):
         self.model.get_layer('decoder').reset_states()
         print("Resetting states")
 
-def train(cfg, data_paths, model_path, transfer_path=None):
+def train(cfg, data_paths, model_path, transfer_path=None, shape=None):
     physical_devices = tf.config.list_physical_devices('GPU')
     if physical_devices:
         tf.config.experimental.set_memory_growth(physical_devices[0], True)
     model_cfg = cfg['ai_model']
-    cam_cfg = cfg['cam']
     loader = None
     model = None
 
     model_type = ModelType(model_cfg['model_type'])
-    input_shape = (cam_cfg['img_h'], cam_cfg['img_w'], 3)
+    if shape is not None:
+        input_shape = int(shape[0]), int(shape[1]), 3
+    else:
+        input_shape = calc_input_shape(cfg)
     batch_size = model_cfg['batch_size']
+    print (f"Input shape: {input_shape}")
 
     if model_type == ModelType.CNN_2D:
         loader = DataLoader(*data_paths)
         model = Keras_2D_CNN.get_model(input_shape=input_shape, num_outputs=2, num_feature_vectors=0)
     elif model_type == ModelType.CNN_2D_SPD_FTR:
         loader = SpeedFeatureDataLoader(*data_paths)
-        model = Keras_2D_CNN.get_model(input_shape=input_shape,num_outputs=2, num_feature_vectors=1)
+        model = Keras_2D_CNN.get_model(input_shape=input_shape, num_outputs=2, num_feature_vectors=1)
     elif model_type == ModelType.CNN_2D_SPD_CTL:
-        loader = SpeedCtlDataLoader(*data_paths)
+        loader = SpeedCtlDataLoader(cfg['speed_control']['train_speed_mean'], cfg['speed_control']['train_speed_offset'], *data_paths)
         model = Keras_2D_CNN.get_model(input_shape=input_shape, num_outputs=2, num_feature_vectors=0)
     elif model_type == ModelType.CNN_2D_FULL_HOUSE:
         loader = FullHouseDataLoader(*data_paths)
@@ -517,6 +513,9 @@ def train(cfg, data_paths, model_path, transfer_path=None):
     elif model_type == ModelType.LSTM:
         loader = LSTMDataLoader(*data_paths)
         model = KerasResNetLSTM.get_model(input_shape, model_cfg['embedding_size'], batch_size)
+    elif model_type == ModelType.CNN_2D_SPD_CTL_BREAK_INDICATION:
+        loader = SpeedCtlBreakIndicationDataLoader(*data_paths)
+        model = Keras_2D_CNN.get_model(input_shape=input_shape, num_outputs=2, num_feature_vectors=1)
 
     if transfer_path is not None:
         model = load_model(transfer_path)
@@ -538,6 +537,18 @@ def train(cfg, data_paths, model_path, transfer_path=None):
     model.fit(loader.train_dataset_batch, epochs=model_cfg['max_epoch'], validation_data=loader.val_dataset_batch, callbacks=callbacks)
     print(f'Finished training. Best model saved to {model_path}.')
     # model.save(model_path)
+
+def calc_input_shape(cfg):
+    cam_cfg = cfg['cam']
+    width = cam_cfg['img_w']
+    height = cam_cfg['img_h']
+    channel = 1 if cam_cfg['img_format'] == 'GREY' else 3
+
+    if cfg['img_preprocessing']['enabled']:
+        t, b, l, r = cfg['img_preprocessing']['crop']
+        width -= l + r
+        height -= t + b
+    return height, width, channel
 
 
 

@@ -29,7 +29,7 @@ LiDAR added in dev branch
 1. Install [miniconda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html)
 2. `conda create -n tritonracer python=3.8`
 3. `conda activate tritonracer`
-4. `pip install docopt pyserial tensorflow==2.3.0 pillow keras==2.3.0 opencv-python pygame==2.0.0.dev10`
+4. `pip install docopt pyserial tensorflow==2.3.0 pillow keras==2.3.0 opencv-python opencv-contrib-python pygame==2.0.0.dev10 Shapely simple-pid`
 5. `conda install scikit-learn`
 6. If you are going to use donkey simulator: set up [donkey gym](http://docs.donkeycar.com/guide/simulator/#install) in this environment (omit `conda activate donkey` in the original installation procedure)
     1. If you have a donkeycar installation with donkey gym setup, navigate to the donkey gym repository. If not, find a suitable place and `git clone https://github.com/tawnkramer/gym-donkeycar`
@@ -144,6 +144,7 @@ How to write your custom component for tritonracer:
 6. Add your component in manage.py's `assemble_car()`: `car.addComponent(my_component)`
 
 ## Roadmap
+
 Features to come:
 1. RNN & LSTM
 2. Reinforcement learning
@@ -151,3 +152,46 @@ Features to come:
 4. ~~Image filtering~~
 5. Packaging the software
 6. Merging with donkeycar
+
+
+## Wiki
+
+### Calibration
+
+Calibration is required before driving an **ACTUAL** car.
+
+1. Go to `myconfig.yaml`. Choose a `sub_board_type`, and fill out the corresponding configurations.
+2. For VESC: put your calibrations under `vesc` (e.g. `max_forward_rpm`).
+3. For every board else: put your calibrations under `calibration` (e.g. `max_forward_pwm`).  
+4. In your car folder, `python manage.py calibrate --steering`. Enter a couple values to test max left, right, and neutral steering. Write them down.
+5. After that, `python manage.py calibrate --throttle`. Enter a couple values to test max forward, reverse, and neutral (neutral not required for VESC). Write them down.
+6. Go back to `myconfig.yaml` and change these values.
+
+### Data Post Processing
+
+### Image post processing
+
+Collected data without a filter, but want to change mind? No problem. 
+
+1. Check filter configurations in `myconfig.yaml` under `img_preprocessing`.
+2. `python manage.py postprocess --source original_folder --destination --new_data_folder --filter`
+
+### Latency post processing
+
+Collected data with a different latency setting, but want to change mind? No problem.
+
+`python manage.py postprocess --source original_folder --destination --new_data_folder --latency`
+
+And follow the wizard.
+
+### VESC
+
+Using a VESC (6 or 4.2) enables speed control. A serial cable is connected from the SBC to the VESC, which is programmed with "servo out" firmware so that the VESC controls both throttle and steering.
+
+#### Installation
+
+1. Follow [this](https://docs.google.com/document/d/1rhdnBL0FwiG_Hzo2K9oM__andg5ioL1QOSigaqqmhyk/edit#heading=h.eglctplfxbbb) document to set up the VESC.
+2. On SBC, make sure you are in `tritonracer` environment.
+3. `git clone https://github.com/LiamBindle/PyVESC`
+4. `cd PyVESC  `
+5. `python -m pip install -e .` 

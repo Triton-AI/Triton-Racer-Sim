@@ -3,10 +3,10 @@ Scripts to drive a triton racer car
 
 Usage:
     manage.py (drive) [--model=<model>] [--dummy]
-    manage.py (train) (--tub=<tub1,tub2,..tubn>) (--model=<model>) [--transfer=<model>]
+    manage.py (train) (--tub=<tub1,tub2,..tubn>) (--model=<model>) [--transfer=<model>] [--shape=<height,width>]
     manage.py (generateconfig)
     manage.py (postprocess) (--source=<original_data_folder>) (--destination=<processed_data_folder>) [--filter] [--latency]
-    manage.py (calibrate) [--steering] [--throttle]
+    manage.py (calibrate) [--steering] [--throttle] [--rpm]
     manage.py (processtrack) (--tub=<data_folder>) (--output=<track_json_file>)
     manage.py (joystick) [--dump]
 """
@@ -46,19 +46,38 @@ def assemble_car(cfg = {}, args = {}, model_path = None):
     from TritonRacerSim.components.track_data_process import LocationTracker
     from TritonRacerSim.components.driver_assistance import DriverAssistance
 
+    # Verbose
+    if len(cfg['verbose']) > 0:
+        from TritonRacerSim.components.verbose import Verbose
+        vb = Verbose(cfg)
+        car.addComponent(vb)
+
     # Autopilot
     if model_path is not None:
         from TritonRacerSim.components.keras_pilot import KerasPilot
         pilot = KerasPilot(cfg, model_path, ModelType(cfg['ai_model']['model_type']))
         car.addComponent(pilot)
 
-    # Speed calculator for car
-    # Simulated Car or Real Car (Simulated car with speed based control uses speed_control part, 
-    # physical uses teensy microcontroller which handles speed calculations on its own)
-    if cfg['I_am_on_simulator'] and cfg['ai_model']['model_type'] == 'cnn_2d_speed_control':
-        from TritonRacerSim.components.speed_control import SpeedControl
-        speedCalculator = SpeedControl(cfg)
-        car.addComponent(speedCalculator)
+        # Speed calculator for car
+        # Simulated Car or Real Car (Simulated car with speed based control uses speed_control part, 
+        # physical uses teensy microcontroller which handles speed calculations on its own)
+        model_type = cfg['ai_model']['model_type']
+        speed_based_models = ['cnn_2d_speed_control', 'cnn_2d_full_house', 'cnn_2d_speed_control_break_indication']
+        if cfg['I_am_on_simulator'] and model_type in speed_based_models:
+            spd_cfg = cfg['speed_control']
+            from TritonRacerSim.components.speed_control import SpeedControl, PIDSpeedControl
+            speedCalculator = None
+            if spd_cfg['algorithm'] == 'sigmoid':
+                speedCalculator = SpeedControl(spd_cfg)
+            elif spd_cfg['algorithm'] == 'pid':
+                speedCalculator = PIDSpeedControl(spd_cfg)
+            car.addComponent(speedCalculator)
+
+    # PID Pilot
+    elif cfg['ai_model']['model_type'] == 'pid':
+        from TritonRacerSim.components.pid_pilot import PIDPilot
+        pilot = PIDPilot(cfg['pid_pilot'])
+        car.addComponent(pilot)
 
     # Joystick
     js_cfg = cfg['joystick']
@@ -88,7 +107,7 @@ def assemble_car(cfg = {}, args = {}, model_path = None):
     else:
         sub_board = cfg['electronics']['sub_board_type']
         if sub_board == 'PCA9685':
-            pass #TODO
+            raise NotImplementedError()
         if sub_board == 'TEENSY':
             from TritonRacerSim.components.teensy import TeensyMC_Test
             teensy = TeensyMC_Test(cfg['electronics'])
@@ -97,11 +116,21 @@ def assemble_car(cfg = {}, args = {}, model_path = None):
             from TritonRacerSim.components.esp32_cam import ESP32CAM
             esp = ESP32CAM(cfg['electronics'])
             car.addComponent(esp)
+        elif sub_board == 'VESC':
+            from TritonRacerSim.components.vesc import VESC_
+            v = VESC_(cfg['electronics']['vesc'])
+            car.addComponent(v)
+        else:
+            raise Exception(f"Sub-board type not recognized: {sub_board}.")
 
         cam_cfg = cfg['cam']
         if cam_cfg['type'] == 'WEBCAM' and sub_board != 'ESP32':
             from TritonRacerSim.components.camera import Camera
             cam = Camera(cam_cfg)
+            car.addComponent(cam)
+        elif cam_cfg['type'] == 'WEBCAM_OPENCV' and sub_board != 'ESP32':
+            from TritonRacerSim.components.camera import OpenCVCamera
+            cam = OpenCVCamera(cam_cfg)
             car.addComponent(cam)
 
     lidar_cfg = cfg['simulator']['lidar']
@@ -110,18 +139,24 @@ def assemble_car(cfg = {}, args = {}, model_path = None):
         lidar = DonkeySimLiDAR(lidar_cfg)
         car.addComponent(lidar)
 
-    #Image preprocessing
+    #Image preprocessing (Open CV Required)
     prep_cfg = cfg['img_preprocessing']
     if prep_cfg['enabled']:
         from TritonRacerSim.components.img_preprocessing import ImgPreprocessing
         preprocessing = ImgPreprocessing(prep_cfg)
         car.addComponent(preprocessing)
 
-    # Location tracker (for mountain track)
+    # Location tracker
     loc_cfg = cfg['location_tracker']
     if loc_cfg['enabled']:
-        tracker = LocationTracker(track_data_path=loc_cfg['track_data_file'])
+        tracker = LocationTracker(loc_cfg)
         car.addComponent(tracker)
+
+    # Final Image Scaler (Open CV Required)
+    if (cam_cfg['img_h'], cam_cfg['img_w']) != cam_cfg['native_resolution'] and cfg['I_am_on_simulator']:
+        from TritonRacerSim.components.img_preprocessing import ImageResizer
+        resizer = ImageResizer(cam_cfg)
+        car.addComponent(resizer)
 
     # Data storage
     storage = DataStorage()
@@ -131,6 +166,13 @@ def assemble_car(cfg = {}, args = {}, model_path = None):
             original_data_storage = DataStorage(storage_path=storage.storage_path[0:-1]+'_original/')
             car.addComponent(original_data_storage)
     car.addComponent(storage)
+
+    # Image Feed Streamer
+    img_stm = cfg['stream_cam_feed']
+    if img_stm['enabled']:
+        from TritonRacerSim.components.cam_feed_streamer import CamFeedStreamer
+        streamer = CamFeedStreamer(img_stm)
+        car.addComponent(streamer)
 
     return car
 
@@ -177,9 +219,13 @@ if __name__ == '__main__':
 
             from TritonRacerSim.components.keras_train import train
             transfer_path=None
+            shape=None
             if (args['--transfer']):
                 transfer_path = args['--transfer']
-            train(cfg, data_paths, model_path, transfer_path)
+
+            if args['--shape']:
+                shape = args['--shape'].split(',')
+            train(cfg, data_paths, model_path, transfer_path, shape)
 
         elif args['calibrate']:
             from TritonRacerSim.utils.calibrate import calibrate
@@ -201,6 +247,6 @@ if __name__ == '__main__':
                 creator.js = creator.select_joystick()
                 while True:
                     print(f"{creator.dump_joystick(creator.js)}\r",end="")
-                    time.sleep(0.02)
+                    time.sleep(0.5)
             else:
                 creator.create()

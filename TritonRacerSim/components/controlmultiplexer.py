@@ -6,7 +6,7 @@ import time
 class ControlMultiplexer(Component):
     '''Switch user or ai control based on mode. also controls ai launch'''
     def __init__(self, cfg={}):
-        Component.__init__(self, inputs=['usr/mode', 'usr/steering', 'usr/throttle', 'usr/breaking', 'ai/steering', 'ai/throttle', 'ai/breaking'], outputs=['mux/steering', 'mux/throttle', 'mux/breaking'])
+        Component.__init__(self, inputs=['usr/mode', 'usr/steering', 'usr/throttle', 'usr/breaking', 'ai/steering', 'ai/throttle', 'ai/breaking', 'ai/pid'], outputs=['mux/steering', 'mux/throttle', 'mux/breaking'])
         boost_cfg = cfg['ai_boost']
         
         self.last_mode = DriveMode.HUMAN
@@ -22,6 +22,8 @@ class ControlMultiplexer(Component):
         self.steering_lock_enabled = str_lock_cfg['enabled']
         self.steering_lock_value = str_lock_cfg['value']
         self.steering_lock_duration = str_lock_cfg['duration']
+
+        self.pid = None
 
 
 
@@ -44,6 +46,7 @@ class ControlMultiplexer(Component):
             toReturn = toReturn[0], self.throttle_lock_value, toReturn[2]
 
         self.last_mode = args[0]
+        self.pid = args[7]
         #print(toReturn)
         return toReturn
 
@@ -61,6 +64,8 @@ class ControlMultiplexer(Component):
         time.sleep(self.throttle_lock_duration)
         self.throttle_lock_active = False
         print('[WARNING] Throttle Lock Ended')
+        if self.pid is not None:
+            self.pid.spd_pid.reset()
 
     def __start_steering_lock(self):
         if self.steering_lock_enabled:
@@ -73,3 +78,5 @@ class ControlMultiplexer(Component):
         time.sleep(self.steering_lock_duration)
         self.steering_lock_active = False
         print('[WARNING] Steering Lock Ended')
+        if self.pid is not None:
+            self.pid.str_pid.reset()

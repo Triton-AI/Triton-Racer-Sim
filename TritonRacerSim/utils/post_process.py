@@ -18,7 +18,7 @@ def post_process(source, destination, cfg={}):
     print(f'Destination: {destination}')
 
     processor = ImgPreprocessing(cfg)
-    t = Thread(target=processor.step_inputs, daemon=True)
+    t = Thread(target=processor.thread_step, daemon=True)
     t.start()
 
     source = path.abspath(source)
@@ -33,7 +33,8 @@ def post_process(source, destination, cfg={}):
             copyfile(path.join(source, f'record_{count}.json'), path.join(destination, f'record_{count}.json'))
             while processor.processed_img is None:
                 time.sleep(0.005)
-            cv2.imwrite(path.join(destination, f'img_{count}.jpg'))
+            processed_img, = processor.step(None, )
+            cv2.imwrite(path.join(destination, f'img_{count}.jpg'), processed_img)
             processor.processed_img = None
             count += 1
 

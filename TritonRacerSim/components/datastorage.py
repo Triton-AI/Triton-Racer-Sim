@@ -10,7 +10,7 @@ import time
 import queue
 
 class DataStorage(Component):
-    def __init__(self, to_store=['cam/img', 'mux/throttle', 'mux/steering', 'mux/break', 'gym/speed', 'loc/segment', 'gym/x', 'gym/y', 'gym/z', 'gym/cte'], storage_path = None):
+    def __init__(self, to_store=['cam/img', 'mux/throttle', 'mux/steering', 'mux/break', 'gym/speed', 'loc/segment', 'gym/x', 'gym/y', 'gym/z', 'gym/cte', 'loc/cte', 'loc/break_indicator'], storage_path = None):
         super().__init__(inputs=to_store, threaded=False)
         self.step_inputs += ['usr/del_record', 'usr/toggle_record']
         self.on = True
@@ -18,7 +18,7 @@ class DataStorage(Component):
         os.mkdir(self.storage_path)
         self.count = 0
         self.recording = False
-        self.records_temp = queue.Queue() #temporary storage of records in memory, awaiting file io
+        self.records_temp = queue.Queue() # temporary storage of records in memory, awaiting file io
         self.file_thread = Thread(target=self.file_io_thread, daemon=True)
         self.file_thread.start()
 
@@ -29,6 +29,8 @@ class DataStorage(Component):
         # store records
         elif args[-1]:          
             record = {self.step_inputs[i]: args[i] for i in range(len(self.step_inputs))}
+            #if record['cam/img'] is not None:
+            #    print(args[0].shape)
             self.records_temp.put(record)
             self.count += 1
 
@@ -75,6 +77,7 @@ class DataStorage(Component):
         img_string = 'cam/img' if 'cam/img' in record else 'cam/processed_img'
         if  record[img_string] is not None:
             img_path = path.join(self.storage_path, f'img_{count}.jpg')
+            # print(record[img_string].shape)
             Image.fromarray(record[img_string]).save(img_path)
             record[img_string] = f'img_{count}.jpg'
 
