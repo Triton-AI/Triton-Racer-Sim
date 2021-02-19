@@ -7,7 +7,7 @@ from shutil import copyfile
 from threading import Thread
 import json
 
-from TritonRacerSim.components.img_preprocessing import ImgPreprocessing
+from TritonRacerSim.components.img_preprocessing import ImgPreprocessing, ImageResizer
 from TritonRacerSim.components.datastorage import DataStorage
 
 import cv2
@@ -34,9 +34,10 @@ def post_process(source, destination, cfg={}):
             while processor.processed_img is None:
                 time.sleep(0.005)
             processed_img, = processor.step(None, )
-            cv2.imwrite(path.join(destination, f'img_{count}.jpg'), processed_img)
+            cv2.imwrite(path.join(destination, f'img_{count}.jpg'), cv2.cvtColor(processed_img, cv2.COLOR_RGB2BGR))
             processor.processed_img = None
             count += 1
+            print(f'Processing {count} records...\r', end='')
 
     except FileNotFoundError:
         print(f'{count} records processed.')
@@ -94,3 +95,29 @@ def shiftIdx(source, destination, amount):
 
     except FileNotFoundError:
         print(f'Processed {count} records.')
+
+
+def post_process_resize(source, destination, cfg={}):
+    print("[Post-processing]")
+    print(f'Source: {source}')
+    print(f'Destination: {destination}')
+
+    processor = ImageResizer(cfg)
+
+    source = path.abspath(source)
+    destination = path.abspath(destination)
+    os.mkdir(destination)
+
+    count = 0
+    try: 
+        while True:
+            img = cv2.imread(path.join(source, f'img_{count}.jpg'))
+            processor.step(img,)
+            copyfile(path.join(source, f'record_{count}.json'), path.join(destination, f'record_{count}.json'))
+            processed_img, = processor.step(img, )
+            cv2.imwrite(path.join(destination, f'img_{count}.jpg'), processed_img)
+            count += 1
+            print(f'Processing {count} records...\r', end='')
+
+    except FileNotFoundError:
+        print(f'{count} records processed.')
