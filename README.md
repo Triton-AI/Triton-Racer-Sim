@@ -45,37 +45,37 @@ LiDAR added in dev branch
 5. Install dependencies `pip install docopt pyserial pillow keras pygame`
 6. More on the hardware setup later.
 
-### Download TritonRacer Repo (Both Host PCs and Jetson)
+### Download TritonRacer Repo and Create a Car (Both Host PCs and Jetson)
 1. `git clone https://github.com/Triton-AI/Triton-Racer-Sim`
 2. Copy `Triton-Racer-Sim/TritonRacerSim/car_templates/` folder to somewhere outside the repository (and optionally rename it). This is your car folder, like "d3" of donkeycar.
-3. **IMPORTANT:** Go to your car folder, open manage.py and edit line 11 to be your path to the Triton-Racer-Sim repo in your system `sys.path.append('/home/haoru/Projects/Triton-Racer-Sim/')`
+3. **IMPORTANT:** Go to your car folder, open manage.py and edit line 15 to be your path to the `Triton-Racer-Sim` repo in your system `sys.path.append('/home/haoru/Projects/Triton-Racer-Sim/')`
 
 ## Manual
-
-Creation of car instances will be supported later.
 
 ### Config File
 
 Now the `car_templates` folder comes with a `myconfig.yaml`. `manage.py generateconfig` has been depreciated.
 
-### Drive the Car
+### Drive the Car to Collect Data
 
-Create a config file, then enter
-
-    python manage.py drive
+`python manage.py drive`
 
 **IMPORTANT: by default data collection is turned OFF**
 
-Use a PS4 joystick:
+**Joystick mapping may differ on different platforms. Use `python manage.py joystick` to invoke custom joystick mapping wizard.**
+
+Officially supported joysticks: PS4 (3), XBox, F710, G28, Switch
+
+Use a PS4 joystick (Ubuntu):
 * Left X axis: steering
 * Right Y axis: throttle
-* Right Trigger: breaking
+* Right Trigger: breaking (simulator)
 * Circle: toggle recording
 * Triangle: delete 100 records
 * Square: reset the car
 * Share: switch driving mode
 
-Use an XBOX joystick:
+Use an XBOX joystick (Ubuntu):
 * Left X axis: steering
 * Right Y axis: throttle
 * Right Trigger: breaking
@@ -92,7 +92,7 @@ Data recorded can be found in data/records_x/
 
 ### Before Training
 
-If you have a GPU: install [CUDA support for tensorflow](https://www.tensorflow.org/install/gpu)
+If you have a recent NVIDIA GPU: install [CUDA support for tensorflow](https://www.tensorflow.org/install/gpu)
 
 Note: If you have CUDA installed, and tensorflow says `Could not load dynamic library 'libcublas.so.10'` and falls back to CPU during training, add these lines to your ~/.bashrc:
 
@@ -104,30 +104,24 @@ Note: If you have CUDA installed, and tensorflow says `Could not load dynamic li
 `python manage.py train --tub data/records_1 --model ./models/pilot.h5` 
 
 * `--tub`: path to the data folder
-* `--model`: where you would like to put your model
+* `--model`: where you would like to put your model (.h5 file)
 * `--transfer`: (optional) which old model you would like to train upon
 
-**IMPORTANT:** `--tub` param is mandatory.
+**IMPORTANT:** `--tub` and `--model` params are mandatory.
 
 RAM usage (120 * 160 image, 7000 Records): 8GB
 
 VRAM usage (120 * 160 image, 128 batch size): 3GB
 
-**IMPORTANT** If you run into insufficient memory issue, follow [this](https://linuxize.com/post/how-to-add-swap-space-on-ubuntu-18-04/) guide to pre-allocate space for Ubuntu swap file (Allocate more than the size of your physical RAM). Windows users, click [here](https://answers.microsoft.com/en-us/windows/forum/windows_10-performance/how-to-increase-virtual-memory-in-windows-10-a/46dacaf5-15cf-4f5d-9d5a-cba1401ae4c9). If you do this, your system may stall momentarily duing training in the first two epoches, but that's still better than the training getting killed.
+**IMPORTANT** If you run into insufficient memory issue, follow [this](https://linuxize.com/post/how-to-add-swap-space-on-ubuntu-18-04/) guide to pre-allocate space for Ubuntu swap file (Allocate more than the size of your physical RAM). Windows users, click [here](https://answers.microsoft.com/en-us/windows/forum/windows_10-performance/how-to-increase-virtual-memory-in-windows-10-a/46dacaf5-15cf-4f5d-9d5a-cba1401ae4c9). If you do this, your system may stall momentarily duing training, but that's still better than the training getting killed.
 
-
-#### Model Types
-
-* `cnn_2d`: Take an image and predict throttle and steering;
-* `cnn_2d_speed_as_feature`: Take an image and current speed, and predict throttle and steering
-* `cnn_2d_speed_control`: Take an image and predict speed and steering;
-* `cnn_2d_full_house`: Take an image, segment of track, and current speed, and predict speed and steering. (Speed prediction is unrelated to current speed)
+See below for available model types.
 
 ### Test the Model
 
 `python manage.py drive --model ./models/pilot.h5`
 
-Switch between modes:
+The car will still go to human mode by default. Use your joystick to switch between modes:
 
 * Full human control
 * Human throttle + AI steering
@@ -146,7 +140,7 @@ How to write your custom component for tritonracer:
 ## Roadmap
 
 Features to come:
-1. RNN & LSTM
+1. ~~RNN & LSTM~~
 2. Reinforcement learning
 3. ~~Migration to real car~~
 4. ~~Image filtering~~
@@ -184,6 +178,76 @@ Collected data with a different latency setting, but want to change mind? No pro
 
 And follow the wizard.
 
+## Model Types
+### CNN_2D
+
+Input: image array (H\*W\*C)
+
+Output: steering [-1, 1], throttle [-1, 1]
+
+Required config section: `ai_model`, `cam`
+
+### CNN_2D_SPD_FTR
+
+Input: image array (H\*W\*C), speed
+
+Output: steering [-1, 1], throttle [-1, 1]
+
+Required config section: `ai_model`, `cam`
+
+### CNN_2D_SPD_CTL
+
+Input: image array (H\*W\*C)
+
+Output: steering [-1, 1], speed
+
+Required config section: `ai_model`, `cam`, `speed_control`
+### CNN_2D_FULL_HOUSE (Depreciated)
+
+Input: image array (H\*W\*C), speed, cross-track error
+
+Output: steering [-1, 1], throttle [-1, 1]
+
+Required config section: `ai_model`, `cam`
+
+### CNN_2D_SPD_CTL_BREAK_INDICATION
+
+Input: image array (H\*W\*C), break indicator {0, 1}
+
+Output: steering [-1, 1], speed
+
+Required config section: `ai_model`, `cam`, `location_tracker`
+
+### CNN_3D
+
+Not implemented
+
+### RNN
+
+Not implemented
+
+### LSTM
+
+Input: image array (H\*W\*C), speed
+
+Output: steering [-1, 1], throttle [-1, 1]
+
+Required config section: `ai_model`, `cam`, `speed_control`
+
+### RESNET_CATEGORICAL_SPEED_CONTROL
+
+Input: image array (H\*W\*C)
+
+Output: steering [-1, 1], speed category
+
+Required config section: `ai_model`, `cam`, `speed_control`
+
+### PID
+
+Not a neural network. Only a PID line follower.
+
+Required config section: `location_tracker`
+
 ### VESC
 
 Using a VESC (6 or 4.2) enables speed control. A serial cable is connected from the SBC to the VESC, which is programmed with "servo out" firmware so that the VESC controls both throttle and steering.
@@ -195,3 +259,9 @@ Using a VESC (6 or 4.2) enables speed control. A serial cable is connected from 
 3. `git clone https://github.com/LiamBindle/PyVESC`
 4. `cd PyVESC  `
 5. `python -m pip install -e .` 
+
+#### Configuration
+
+1. Follow the installation section
+2. Follow the calibration section
+3. Check `max_forward_current` and `max_reverse_current` in `myconfig.yaml`. They are used in human driving.
