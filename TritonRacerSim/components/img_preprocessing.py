@@ -149,7 +149,7 @@ class ImgPreprocessing(Component):
         if b > 0:
             img = img[:-b, :]
         if r > 0:
-            img = img[:-r, :]
+            img = img[:,:-r]
         return img
 
     def __upscale(self, img):
@@ -233,7 +233,7 @@ class ImgPreprocessing(Component):
 class ImageResizer(Component):
     def __init__(self, cfg):
         super().__init__(inputs=['cam/img',], outputs=['cam/img',])
-        self.target_res = cfg['img_h'], cfg['img_w']
+        self.target_res = cfg['img_w'], cfg['img_h'],
 
     def step(self, *args):
         if args[0] is not None:
