@@ -180,7 +180,7 @@ class KerasPilot(Component):
 
                 return steering, None, None, speed
 
-            elif self.model == ModelType.RESNET_CATEGORICAL_SPD_CTL:
+            elif self.model_type == ModelType.RESNET_CATEGORICAL_SPEED_CONTROL:
                 img_arr = preprocess_input(img_arr)
                 real_spd = args[1]
                 steering_and_speed = self.model(img_arr)

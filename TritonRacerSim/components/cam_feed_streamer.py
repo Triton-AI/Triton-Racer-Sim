@@ -34,7 +34,7 @@ class CamFeedStreamer(Component):
             try:
                 while self.on:
                     if self.frame is not None:
-                        data = base64.b64encode(self.frame)
+                        data = base64.b64encode(self.frame.copy())
                         self.conn.sendall(bytes(data.decode('utf-8')+'\n', 'utf-8'))
                     time.sleep(0.02)
             except (ConnectionResetError, BrokenPipeError):

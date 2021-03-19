@@ -28,7 +28,7 @@ class DataPool:
                 for i in range(len(component.step_outputs)):
                     current_idx = i
                     self.pool[component.step_outputs[i]] = output_values[i]
-                    #if component.step_outputs[i] == 'cam/img':
+                    # if component.step_outputs[i] == 'mux/breaking':
                     #    print(component.getName())
                     #if component.getName()=='Camera':
                     #    if self.pool['cam/img'] is not None:
