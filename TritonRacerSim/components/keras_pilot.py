@@ -115,7 +115,22 @@ class KerasPilot(Component):
                 steering_and_speed = self.model(img_arr)
                 steering = self.__cap(steering_and_speed.numpy()[0][0])
                 predicted_speed = (steering_and_speed.numpy()[0][1] + self.speed_offset) * self.speed_mean
+                if args[3] == 1: # Break indicator
+                    predicted_speed *= 0.8
+                # print (f'Spd: {real_spd}, Pred: {predicted_speed}, Str: {steering} \r', end='')
+                #print (f'Thr: {throttle}, Brk: {breaking} \r', end='')
+                steering = self.__smooth_steering(steering)
+                return steering, None, None, predicted_speed
 
+            elif self.model_type == ModelType.RESNET_SPD_CTL:
+                # print (img_arr.shape)
+                img_arr = preprocess_input(img_arr)
+                real_spd = args[1]
+                steering_and_speed = self.model(img_arr)
+                steering = self.__cap(steering_and_speed.numpy()[0][0])
+                predicted_speed = (steering_and_speed.numpy()[0][1] + self.speed_offset) * self.speed_mean
+                if args[3] == 1: # Break indicator
+                    predicted_speed *= 0.8
                 # print (f'Spd: {real_spd}, Pred: {predicted_speed}, Str: {steering} \r', end='')
                 #print (f'Thr: {throttle}, Brk: {breaking} \r', end='')
                 steering = self.__smooth_steering(steering)
@@ -165,7 +180,7 @@ class KerasPilot(Component):
 
                 return steering, None, None, speed
 
-            elif self.model == ModelType.RESNET_CATEGORICAL_SPEED_CONTROL:
+            elif self.model == ModelType.RESNET_CATEGORICAL_SPD_CTL:
                 img_arr = preprocess_input(img_arr)
                 real_spd = args[1]
                 steering_and_speed = self.model(img_arr)
