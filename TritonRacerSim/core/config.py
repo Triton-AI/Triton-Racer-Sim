@@ -127,7 +127,7 @@ def generate_config(config_path):
 
 def read_yaml_config(config_path):
     with open(config_path, "r") as config_file:
-        config = yaml.load(config_file)
+        config = yaml.load(config_file, Loader=yaml.FullLoader)
     return config
 
 def generate_yaml_config(config_path):
