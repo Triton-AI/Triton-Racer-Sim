@@ -43,7 +43,6 @@ def assemble_car(cfg = {}, args = {}, model_path = None):
 
     from TritonRacerSim.components.controlmultiplexer import ControlMultiplexer
     from TritonRacerSim.components.datastorage import  DataStorage
-    from TritonRacerSim.components.track_data_process import LocationTracker
     from TritonRacerSim.components.driver_assistance import DriverAssistance
 
     # Verbose
@@ -149,6 +148,7 @@ def assemble_car(cfg = {}, args = {}, model_path = None):
     # Location tracker
     loc_cfg = cfg['location_tracker']
     if loc_cfg['enabled']:
+        from TritonRacerSim.components.track_data_process import LocationTracker
         tracker = LocationTracker(loc_cfg)
         car.addComponent(tracker)
 

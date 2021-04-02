@@ -16,6 +16,8 @@ RUN python3 -m pip install --upgrade pip && \
     pillow keras pygame==1.9.6 opencv-python simple-pid \
     scikit-learn
 
+# RUN python3 -m pip install -U Shapely==1.6.4
+
 RUN mkdir -p /projects
 WORKDIR /projects
 RUN git clone https://github.com/LiamBindle/PyVESC && \
@@ -25,7 +27,8 @@ RUN git clone https://github.com/Triton-AI/Triton-Racer-Sim && \
     cd Triton-Racer-Sim && \
     git checkout dev && \
     cp -r TritonRacerSim/car_templates /projects/ && \
-    echo "export PYTHONPATH=${PYTHONPATH}:/projects/Triton-Racer-Sim/" >> ~/.bashrc
+    echo "export PYTHONPATH=${PYTHONPATH}:/projects/Triton-Racer-Sim/" >> ~/.bashrc && \
+    echo "export OPENBLAS_CORETYPE=ARMV8" >> ~/.bashrc
 
 RUN mv car_templates c1
 WORKDIR /projects/c1
