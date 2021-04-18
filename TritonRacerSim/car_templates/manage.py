@@ -62,7 +62,7 @@ def assemble_car(cfg = {}, args = {}, model_path = None):
         # Simulated Car or Real Car (Simulated car with speed based control uses speed_control part, 
         # physical uses teensy microcontroller which handles speed calculations on its own)
         model_type = cfg['ai_model']['model_type']
-        speed_based_models = ['cnn_2d_speed_control', 'cnn_2d_full_house', 'cnn_2d_speed_control_break_indication']
+        speed_based_models = ['cnn_2d_speed_control', 'cnn_2d_full_house', 'cnn_2d_speed_control_break_indication', 'resnet_speed_control']
         if cfg['I_am_on_simulator'] and model_type in speed_based_models:
             spd_cfg = cfg['speed_control']
             from TritonRacerSim.components.speed_control import SpeedControl, PIDSpeedControl
@@ -151,7 +151,8 @@ def assemble_car(cfg = {}, args = {}, model_path = None):
     if loc_cfg['enabled']:
         tracker = LocationTracker(loc_cfg)
         car.addComponent(tracker)
-
+        
+    cam_cfg = cfg['cam']
     # Final Image Scaler (Open CV Required)
     if (cam_cfg['img_h'], cam_cfg['img_w']) != cam_cfg['native_resolution'] and cfg['I_am_on_simulator']:
         from TritonRacerSim.components.img_preprocessing import ImageResizer
