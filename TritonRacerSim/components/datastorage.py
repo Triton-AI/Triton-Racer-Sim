@@ -10,13 +10,16 @@ import time
 import queue
 
 class DataStorage(Component):
-    def __init__(self, to_store=['cam/img', 'mux/throttle', 'mux/steering', 'mux/break', 'gym/speed', 'loc/segment', 'gym/x', 'gym/y', 'gym/z', 'gym/cte', 'loc/cte', 'loc/break_indicator'], storage_path = None):
-        super().__init__(inputs=to_store, threaded=False)
+    def __init__(self, to_store=['cam/img', 'mux/throttle', 'mux/steering', 'mux/break', 'gym/speed', 
+        'loc/segment', 'gym/x', 'gym/y', 'gym/z', 'gym/cte', 'loc/cte', 'loc/break_indicator'], 
+        storage_path = None):
+        super().__init__(inputs=to_store, outputs=['storage/record_count'], threaded=False)
         self.step_inputs += ['usr/del_record', 'usr/toggle_record']
         self.on = True
         self.storage_path = self.__getStoragePath() if storage_path is None else storage_path
         os.mkdir(self.storage_path)
         self.count = 0
+        self.max_count = 0
         self.recording = False
         self.records_temp = queue.Queue() # temporary storage of records in memory, awaiting file io
         self.file_thread = Thread(target=self.file_io_thread, daemon=True)
@@ -33,6 +36,9 @@ class DataStorage(Component):
             #    print(args[0].shape)
             self.records_temp.put(record)
             self.count += 1
+            if self.count > self.max_count:
+                self.max_count += 1
+        return self.count,
 
     def onStart(self):
         self.on = True
@@ -47,6 +53,17 @@ class DataStorage(Component):
         if not len(os.listdir(self.storage_path)): # Delete the data folder if there is no data collected
             os.rmdir(self.storage_path)
             print(f'{self.storage_path} has been DELETED since no data was recorded in this session.')
+        elif self.max_count > self.count:
+            # check if there should be data to be removed
+            # Usually happens when the user presses delete record and immediately shuts down.
+            for i in range(self.count + 1, self.max_count):
+                try:
+                    img_path = path.join(self.storage_path, f'img_{i}.jpg')
+                    record_path = path.join(self.storage_path, f'record_{i}.json')
+                    os.remove(img_path)
+                    os.remove(record_path)
+                except FileNotFoundError:
+                    continue
 
 
     def getName(self):
@@ -82,7 +99,7 @@ class DataStorage(Component):
             record[img_string] = f'img_{count}.jpg'
 
     def __delRecords(self, num):
-        # original_count = self.count
+        self.max_count = self.count
         self.count -= num
         
         if self.count < 0:
@@ -101,7 +118,7 @@ class DataStorage(Component):
     def file_io_thread(self):
         # a seperate thread for file io
         count = self.count
-        sleep_s = 0.005
+        sleep_s = 0.002
 
         while self.on:
             while count == self.count:

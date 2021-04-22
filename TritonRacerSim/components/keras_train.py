@@ -14,6 +14,7 @@ from tensorflow.keras.layers.experimental.preprocessing import Rescaling
 from tensorflow.keras.layers import Input, Conv2D, Dense, Dropout, Flatten, Concatenate, MaxPooling2D, LSTM, Embedding
 from tensorflow.keras import optimizers, losses
 from tensorflow.keras.models import Model
+from tensorflow.python.keras.backend import dtype
 from tensorflow.python.keras.layers.merge import concatenate
 from tensorflow.python.keras.models import load_model
 from tensorflow.keras import layers
@@ -104,14 +105,7 @@ class DataLoader:
         val_examples = np.stack(val_examples, axis=0)
         val_labels = np.stack(val_labels, axis=0)
 
-        if train_example_vecs:
-            train_example_vecs = np.stack(train_example_vecs, axis=0)
-            val_example_vecs = np.stack(val_example_vecs, axis=0)
-            self.train_dataset = tf.data.Dataset.from_tensors(((train_examples, train_example_vecs), train_labels))
-            self.val_dataset = tf.data.Dataset.from_tensors(((val_examples, val_example_vecs), val_labels)) 
-        else:
-            self.train_dataset = tf.data.Dataset.from_tensors((train_examples, train_labels))
-            self.val_dataset = tf.data.Dataset.from_tensors((val_examples, val_labels))        
+        self.generate_dataset(train_examples, train_labels, val_examples, val_labels, train_example_vecs, val_example_vecs)       
 
     def get_img_name(self, idx):
         return f'img_{idx}.jpg'
@@ -126,6 +120,16 @@ class DataLoader:
         '''Any additional features are we looking for?'''
         # return record['gym/speed'], record['gym/cte']
         return None
+
+    def generate_dataset(self, train_examples, train_labels, val_examples, val_labels, train_example_vecs=[], val_example_vecs=[]):
+        if train_example_vecs:
+            train_example_vecs = np.stack(train_example_vecs, axis=0)
+            val_example_vecs = np.stack(val_example_vecs, axis=0)
+            self.train_dataset = tf.data.Dataset.from_tensors(((train_examples, train_example_vecs), train_labels))
+            self.val_dataset = tf.data.Dataset.from_tensors(((val_examples, val_example_vecs), val_labels)) 
+        else:
+            self.train_dataset = tf.data.Dataset.from_tensors((train_examples, train_labels))
+            self.val_dataset = tf.data.Dataset.from_tensors((val_examples, val_labels))  
     
 
 class Keras_2D_CNN(Component):
@@ -285,29 +289,52 @@ class KerasResNetCategoricalSpeedControl:
         pass
 
     @staticmethod
-    def get_model(input_shape, num_class, batch_size):
-        img_input = Input(name='img_input', batch_input_shape=(batch_size, *input_shape))
+    def get_model(input_shape, num_class):
+        img_input = Input(name='img_input', shape=input_shape)
         resize = Resizing(224, 224)
-        current_spd_input = Input(shape=(1,), name='current_spd_input')
         encoder = ResNet50(include_top=True, weights='imagenet', classifier_activation='linear')
         fc0 = Dense(500, activation='relu', name='dense0')
-        for layer in encoder.layers: layer.trianable = False
-        encoder.layers[-1].trainable = True
+        encoder.trianable = False
+        # encoder.layers[-1].trainable = True
         fc1 = Dense(100, activation='relu', name='dense1')
         fc2 = Dense(50, activation='relu', name='dense2')
         fc_spd = Dense(num_class, activation='softmax', name='dense_speed')
-        fc_str = Dense(1, activation='linear', name='dense_throttle')
+        fc_str = Dense(1, activation='linear', name='dense_steering')
 
         x = resize(img_input)
-        x = encoder(x)
+        x = encoder(x, training=False)
         x = fc0(x)
         x = fc1(x)
         x = fc2(x)
         output_spd = fc_spd(x)
         output_str = fc_str(x)
 
-        model = Model(inputs=[img_input, current_spd_input], outputs=[output_str, output_spd])
-        
+        model = Model(inputs=[img_input], outputs=[output_str, output_spd])
+        encoder.trainable = False
+        encoder.layers[-1].trainable = True
+        return model
+
+class KerasResNetSpeedControl:
+    @staticmethod
+    def get_model(input_shape):
+        img_input = Input(name='img_input', shape=input_shape)
+        resize = Resizing(224, 224)
+        encoder = ResNet50(include_top=True, weights='imagenet', classifier_activation=None)
+        fc0 = Dense(500, activation='relu', name='dense0')
+        fc1 = Dense(100, activation='relu', name='dense1')
+        fc2 = Dense(50, activation='relu', name='dense2')
+        fc3 = Dense(2, activation='linear', name='outputs')
+
+        x = resize(img_input)
+        x = encoder(x, training=False)
+        x = fc0(x)
+        x = fc1(x)
+        x = fc2(x)
+        output = fc3(x)
+
+        model = Model(inputs=[img_input], outputs=[output])
+        encoder.trainable = False
+        encoder.layers[-1].trainable = True
         return model
 
 class DonkeyDataLoader(DataLoader):
@@ -519,13 +546,37 @@ class ResNetCategoricalSpeedCtlDataLoader(DataLoader):
     def preprocess_img(self, img):
         return preprocess_input(img)
 
-    def get_labels_from_record(self, record={}):
-        spd = record['gym/speed']
+    def get_labels_from_record(self, record):
+        return np.asarray((record['mux/steering'],), dtype=np.float32)
+
+    def get_features_from_record(self, record={}):
+        spd = record['gym/speed'] * -1
+        cat = 0
         for i in range(len(self.bins)-1):
             if self.bins[i] < spd < self.bins[i+1]:
-                spd = i
+                cat = i
                 break
-        return np.asarray((record['mux/steering'],)), np.asarray((spd,)) # Adjust the input range to be [0, 1]
+        return np.asarray((cat,), dtype=np.float32) # Adjust the input range to be [0, 1]
+
+    def generate_dataset(self, train_examples, train_labels, val_examples, val_labels, train_example_vecs, val_example_vecs):
+        train_example_vecs = np.stack(train_example_vecs, axis=0)
+        val_example_vecs = np.stack(val_example_vecs, axis=0)
+        self.train_dataset = tf.data.Dataset.from_tensors((train_examples, (train_labels, train_example_vecs)))
+        self.val_dataset = tf.data.Dataset.from_tensors((val_examples, (val_labels, val_example_vecs, )))  
+
+class ResNetSpeedCtlDataLoader(DataLoader):
+    def preprocess_img(self, img):
+        return preprocess_input(img)
+
+
+    def __init__(self, mean, offset, *paths):
+        DataLoader.__init__(self, *paths)
+        self.mean = mean
+        self.offset = offset
+
+    def get_labels_from_record(self, record={}):
+        return np.asarray((record['mux/steering'], (record['gym/speed'] / self.mean) - self.offset)) # Adjust the input range to be [0, 1]
+
 class LSTMCallback(tf.keras.callbacks.Callback):
     def on_epoch_begin(self, epoch, logs=None):
         self.model.get_layer('decoder').reset_states()
@@ -554,26 +605,37 @@ def train(cfg, data_paths, model_path, transfer_path=None, shape=None):
     if model_type == ModelType.CNN_2D:
         loader = DataLoader(*data_paths)
         model = Keras_2D_CNN.get_model(input_shape=input_shape, num_outputs=2, num_feature_vectors=0)
+
     elif model_type == ModelType.CNN_2D_SPD_FTR:
         loader = SpeedFeatureDataLoader(*data_paths)
         model = Keras_2D_CNN.get_model(input_shape=input_shape, num_outputs=2, num_feature_vectors=1)
+
     elif model_type == ModelType.CNN_2D_SPD_CTL:
         loader = SpeedCtlDataLoader(cfg['speed_control']['train_speed_mean'], cfg['speed_control']['train_speed_offset'], *data_paths)
         model = Keras_2D_CNN.get_model(input_shape=input_shape, num_outputs=2, num_feature_vectors=0)
+
     elif model_type == ModelType.CNN_2D_FULL_HOUSE:
         loader = FullHouseDataLoader(*data_paths)
         model = Keras_2D_FULL_HOUSE.get_model(input_shape=input_shape)
+
     elif model_type == ModelType.LSTM:
         loader = LSTMDataLoader(*data_paths)
         model = KerasResNetLSTM.get_model(input_shape, model_cfg['embedding_size'], batch_size)
+
     elif model_type == ModelType.CNN_2D_SPD_CTL_BREAK_INDICATION:
         loader = SpeedCtlBreakIndicationDataLoader(*data_paths)
         model = Keras_2D_CNN.get_model(input_shape=input_shape, num_outputs=2, num_feature_vectors=1)
-    elif model_type == ModelType.RESNET_CATEGORICAL_SPEED_CONTROL:
+
+    elif model_type == ModelType.RESNET_SPD_CTL:
+        loader = ResNetSpeedCtlDataLoader(cfg['speed_control']['train_speed_mean'], cfg['speed_control']['train_speed_offset'], *data_paths)
+        model = KerasResNetSpeedControl.get_model(input_shape)
+
+    elif model_type == ModelType.RESNET_CATEGORICAL_SPD_CTL:
         bins = cfg['speed_control']['categorical_speed_control']['intervals']
-        loader = ResNetCategoricalSpeedCtlDataLoader(bins)
-        model = KerasResNetCategoricalSpeedControl.get_model(input_shape, len(bins)-1, batch_size)
+        loader = ResNetCategoricalSpeedCtlDataLoader(bins, *data_paths)
+        model = KerasResNetCategoricalSpeedControl.get_model(input_shape, len(bins)-1)
         loss=['mse', 'sparse_categorical_crossentropy']
+        
     if transfer_path is not None:
         model = load_model(transfer_path)
     loader.load(batch_size=batch_size)

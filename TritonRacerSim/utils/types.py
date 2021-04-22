@@ -9,6 +9,7 @@ class ModelType(Enum):
     CNN_3D = 'cnn_3d' # takes a sequence of images, predicts throttle and steering
     RNN = 'rnn' # same as 3D CNN
     LSTM = 'lstm'
-    RESNET_CATEGORICAL_SPEED_CONTROL = 'resnet_categorical_speed_control'
+    RESNET_CATEGORICAL_SPD_CTL = 'resnet_categorical_speed_control'
+    RESNET_SPD_CTL = 'resnet_speed_control'
     PID = 'pid' # No neural network. Use a PID controller.
 

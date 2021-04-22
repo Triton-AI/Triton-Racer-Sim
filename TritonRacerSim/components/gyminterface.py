@@ -239,3 +239,20 @@ class GymInterface(Component, SDClient):
         print('Resetting car...')
         msg = {'msg_type': 'reset_car'}
         self.send(json.dumps(msg))
+
+    def send_camera_config(self, config_dict):
+        """
+        config_dict: a dictionary, e.g.
+        {"img_w" : 160, 
+        "img_h" : 120, 
+        "img_d" : 3, 
+        "img_enc" : 'JPG', 
+        "offset_x" : 0.0, 
+        "offset_y" : 3, 
+        "offset_z" : 1.0, 
+        "rot_x" : 0.0,}
+        """
+        print("Gym Interface: Sending custom camera config...")
+        msg = { "msg_type" : "cam_config",}
+        msg.update(config_dict)
+        self.send_now(json.dumps(msg))

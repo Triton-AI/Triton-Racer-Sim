@@ -178,8 +178,8 @@ Collected data with a different latency setting, but want to change mind? No pro
 
 And follow the wizard.
 
-## Model Types
-### CNN_2D
+### Model Types
+#### CNN_2D
 
 Input: image array (H\*W\*C)
 
@@ -187,7 +187,7 @@ Output: steering [-1, 1], throttle [-1, 1]
 
 Required config section: `ai_model`, `cam`
 
-### CNN_2D_SPD_FTR
+#### CNN_2D_SPD_FTR
 
 Input: image array (H\*W\*C), speed
 
@@ -195,14 +195,14 @@ Output: steering [-1, 1], throttle [-1, 1]
 
 Required config section: `ai_model`, `cam`
 
-### CNN_2D_SPD_CTL
+#### CNN_2D_SPD_CTL
 
 Input: image array (H\*W\*C)
 
 Output: steering [-1, 1], speed
 
 Required config section: `ai_model`, `cam`, `speed_control`
-### CNN_2D_FULL_HOUSE (Depreciated)
+#### CNN_2D_FULL_HOUSE (Depreciated)
 
 Input: image array (H\*W\*C), speed, cross-track error
 
@@ -210,7 +210,7 @@ Output: steering [-1, 1], throttle [-1, 1]
 
 Required config section: `ai_model`, `cam`
 
-### CNN_2D_SPD_CTL_BREAK_INDICATION
+#### CNN_2D_SPD_CTL_BREAK_INDICATION
 
 Input: image array (H\*W\*C), break indicator {0, 1}
 
@@ -218,15 +218,15 @@ Output: steering [-1, 1], speed
 
 Required config section: `ai_model`, `cam`, `location_tracker`
 
-### CNN_3D
+#### CNN_3D
 
 Not implemented
 
-### RNN
+#### RNN
 
 Not implemented
 
-### LSTM
+#### LSTM
 
 Input: image array (H\*W\*C), speed
 
@@ -234,7 +234,7 @@ Output: steering [-1, 1], throttle [-1, 1]
 
 Required config section: `ai_model`, `cam`, `speed_control`
 
-### RESNET_CATEGORICAL_SPEED_CONTROL
+#### RESNET_CATEGORICAL_SPD_CTL
 
 Input: image array (H\*W\*C)
 
@@ -242,7 +242,7 @@ Output: steering [-1, 1], speed category
 
 Required config section: `ai_model`, `cam`, `speed_control`
 
-### PID
+#### PID
 
 Not a neural network. Only a PID line follower.
 
