@@ -5,15 +5,14 @@ import time
 from matplotlib.animation import FuncAnimation
 import socket, base64, pickle
 class DonkeySimLiDAR(Component):
-    """HACK brocken"""
     """LiDAR support for donkeygym"""
     def __init__(self, cfg):
-        super().__init__(inputs=['gym/lidar', 'gym/x', 'gym/y', 'gym/z'], outputs=[], threaded=True)
+        super().__init__(inputs=['gym/lidar'], outputs=['lidar/degs', 'lidar/distances', 'lidar/valid_degs', 'lidar/valid_distances'], threaded=False)
         self.on = True
         self.deg_inc = cfg['deg_inc']
         self.max_range = cfg['max_range']
-        self.lidar = None
-        self.port = 9094
+        self.num_sweeps_levels = cfg['num_sweeps_levels']
+
         self.x = None
         self.y = None
         self.z = None
@@ -22,31 +21,29 @@ class DonkeySimLiDAR(Component):
         # self.ani = FuncAnimation(plt.gcf(), self.animate, interval=100)
         # plt.show(block=False)
 
-    def onStart(self):
-        #plt.ion()
-        #self.vis, = plt.plot([],[])
-        #plt.show()
-        pass
 
     def step(self, *args):
-        self.lidar, self.x, self.y, self.z = args
-        self.degs, self.norms = self.get_polar(self.lidar, self.x, self.y, self.z)
-        print(self.lidar)
-
+        self.lidar = args[0]
+        return self.depackage(self.lidar)
+    '''
     def draw(self):
         ani = FuncAnimation(plt.gcf(), self.animate, interval=100)
         plt.show()
         pass
-
+    '''
     
     def depackage(self, lidar):
-        x = None
-        z = None
-        if lidar is not None:
-            x = [scan['x'] for scan in lidar]
-            z = [scan['z'] for scan in lidar]
-        return x, z
-
+        # return None, None, None, None
+        if lidar is None:
+            return None, None, None, None
+        dists = np.full(int(360 / self.deg_inc), self.max_range)
+        degs = np.linspace(0, 360, num=int(360/self.deg_inc), endpoint=False)
+        valid_dists, valid_degs = list(map(list, zip(*[(scan['d'], scan['rx']) for scan in lidar])))
+        valid_idx = np.in1d(degs, valid_degs).nonzero()[0]
+        dists[valid_idx] = valid_dists
+        return degs, dists, valid_degs, valid_dists
+        
+    '''
     def animate(self, i):
         print('here')
         if self.lidar is not None:
@@ -56,7 +53,8 @@ class DonkeySimLiDAR(Component):
             plt.scatter(x, z)
             plt.title("DonkeyGym LiDAR")
             plt.tight_layout()
-
+    '''
+    '''
     def get_polar(self, lidar, x, y, z):
         lidar_arr = np.asarray(self.depackage(lidar)).T
         norms = np.linalg.norm(lidar_arr - np.array([x, z]), axis=1).tolist()
@@ -64,7 +62,8 @@ class DonkeySimLiDAR(Component):
         #print (degs)
         #print(norms)
         return degs, norms
-
+    '''
+    '''
     def thread_step(self):
         self.serv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.serv.bind(('0.0.0.0', self.port))
@@ -84,6 +83,7 @@ class DonkeySimLiDAR(Component):
                 continue
             finally:
                 self.conn.close()
+    '''
     '''
     def update_visualize(self, x, z):
         xdata = np.append(self.vis.get_xdata(), x)

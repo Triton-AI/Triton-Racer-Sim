@@ -52,15 +52,20 @@ def assemble_car(cfg = {}, args = {}, model_path = None):
         car.addComponent(vb)
 
     # Autopilot
+    model_type = cfg['ai_model']['model_type']
     if model_path is not None:
-        from TritonRacerSim.components.keras_pilot import KerasPilot
-        pilot = KerasPilot(cfg, model_path, ModelType(cfg['ai_model']['model_type']))
-        car.addComponent(pilot)
+        model_cfg = cfg['ai_model']
+        if model_cfg['backbone'] == 'keras':
+            from TritonRacerSim.components.keras_pilot import KerasPilot
+            pilot = KerasPilot(cfg, model_path, ModelType(model_type))
+            car.addComponent(pilot)
+        elif model_cfg['backbone'] == 'pytorch':
+            from TritonRacerSim.components.pytorch.pytorch_pilot import PytorchPilot
+            pilot = PytorchPilot(cfg, model_path, ModelType(model_type))
 
         # Speed calculator for car
         # Simulated Car or Real Car (Simulated car with speed based control uses speed_control part, 
         # physical uses teensy microcontroller which handles speed calculations on its own)
-        model_type = cfg['ai_model']['model_type']
         speed_based_models = ['cnn_2d_speed_control', 'cnn_2d_full_house', 'cnn_2d_speed_control_break_indication', 'resnet_speed_control']
         if cfg['I_am_on_simulator'] and model_type in speed_based_models:
             spd_cfg = cfg['speed_control']
@@ -217,16 +222,21 @@ if __name__ == '__main__':
 
             model_path = path.abspath(args['--model'])
             # assert path.exists(model_path)
+            model_cfg = cfg['ai_model']
+            if model_cfg['backbone'] == 'keras':
+                from TritonRacerSim.components.keras_train import train
+                transfer_path=None
+                shape=None
+                if (args['--transfer']):
+                    transfer_path = args['--transfer']
 
-            from TritonRacerSim.components.keras_train import train
-            transfer_path=None
-            shape=None
-            if (args['--transfer']):
-                transfer_path = args['--transfer']
-
-            if args['--shape']:
-                shape = args['--shape'].split(',')
-            train(cfg, data_paths, model_path, transfer_path, shape)
+                if args['--shape']:
+                    shape = args['--shape'].split(',')
+                train(cfg, data_paths, model_path, transfer_path, shape)
+            elif model_cfg['backbone'] == 'pytorch':
+                from TritonRacerSim.components.pytorch.pytorch_train import Trainer
+                trainer = Trainer(model_path.split(','), model_cfg)
+                trainer.train()
 
         elif args['calibrate']:
             from TritonRacerSim.utils.calibrate import calibrate

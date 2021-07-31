@@ -66,6 +66,7 @@ class ControlMultiplexer(Component):
         print('[WARNING] Throttle Lock Ended')
         if self.pid is not None:
             self.pid.spd_pid.reset()
+            print('Speed PID reset.')
 
     def __start_steering_lock(self):
         if self.steering_lock_enabled:
@@ -80,3 +81,4 @@ class ControlMultiplexer(Component):
         print('[WARNING] Steering Lock Ended')
         if self.pid is not None:
             self.pid.str_pid.reset()
+            print('Steering PID reset.')

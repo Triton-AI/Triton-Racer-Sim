@@ -17,6 +17,7 @@ joystick: # Joystick
   default_drive_mode: 'human' # [ human | ai_steering | ai ] Who should take control of the car at launch?  
 
 ai_model: # Training
+  backbone: 'keras' # keras | pytorch
   model_type: 'cnn_2d' # cnn_2d | cnn_2d_speed_as_feature | cnn_2d_speed_control | cnn_2d_full_house | pid | cnn_2d_speed_control_break_indication
   early_stop: true # Early stop when training hasn't made any progress within the patience
   early_stop_patience: 5
@@ -25,6 +26,12 @@ ai_model: # Training
   from_donkey: false # Are you deploying a model from donkeycar?
   embedding_size: 300 # Embedding size for LSTM model
   learning_rate: 0.001
+  momentum: 0.0
+  weight_decay: 0.0
+  use_tensorrt: false
+  shuffle: true
+  num_workers: 0 
+  optimizer: "adam" # adam | sgd
 
 speed_control: # Speed-based control params (for speed control and full house models)
   threshold: 1.1 # Allow the model to overspeed. 1.1 means 10% above predicted speed.
@@ -72,7 +79,19 @@ simulator: # DonkeyGym simulator settings
   lidar:
     enabled: false
     deg_inc: 2 # Degree increment between each ray of the lidar
-    max_range: 50.0 # Max range of the lidar laser
+    max_range: 20.0 # Max range of the lidar laser
+    num_sweeps_levels: 1
+
+  camera:
+    img_w: 640
+    img_h: 360
+
+3d_detection:
+  enabled: true
+  left_data_file: 'file.json'
+  right_data_file: 'file.json'
+  seg_data_file: 'warehouse_center.json'
+  cte_data_file: 'warehouse_center.json'
 
 simulator_autolaunch: # Let the program launches the simulator software for you.
   enabled: false

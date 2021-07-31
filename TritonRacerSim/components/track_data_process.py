@@ -28,7 +28,7 @@ class TrackDataProcessor:
                 f.close()
 
                 # point = [data['gym/x'], data['gym/y'], data['gym/z']]
-                point = [data['gym/x'], data['gym/z']]
+                point = {'gym/x': data['gym/x'], 'gym/z': data['gym/z'], 'yaw': data['gym/telemetry']['yaw']}
                 self.line.append(point)
 
                 i += 1
@@ -71,16 +71,24 @@ class TrackDataProcessor:
 
 class LocationTracker(Component):
     def __init__(self, cfg):
-        Component.__init__(self, inputs=['gym/x', 'gym/y', 'gym/z'], outputs=['loc/segment', 'loc/cte', 'loc/break_indicator'])
-        seg_data_path=cfg['seg_data_file']
-        cte_data_path=cfg['cte_data_file']
+        Component.__init__(self, inputs=['gym/x', 'gym/y', 'gym/z', 'gym/telemetry'], outputs=['loc/segment', 'loc/cte', 'loc/break_indicator', 'loc/cte_pred', 'loc/heading', 'loc/heading_pred'])
+        seg_data_path = cfg['seg_data_file']
+        cte_data_path = cfg['cte_data_file']
+
         with open(seg_data_path, 'r') as input_file:
             self.seg_data = json.load(input_file)
         with open(cte_data_path, 'r') as input_file:
             self.cte_data = json.load(input_file)
-        self.seg_path = geom.LineString(self.seg_data)
-        self.cte_ring = geom.LinearRing(self.cte_data)
-        self.cte_poly = geom.Polygon(self.cte_data)
+
+        seg_coords = [(pt['gym/x'], pt['gym/z']) for pt in self.seg_data]
+        cte_coords = [(pt['gym/x'], pt['gym/z']) for pt in self.cte_data]
+        self.cte_headings = [pt['yaw'] for pt in self.cte_data]
+
+        self.seg_path = geom.LineString(seg_coords)
+        self.cte_path = geom.LineString(cte_coords)
+        self.cte_ring = geom.LinearRing(cte_coords)
+        self.cte_poly = geom.Polygon(cte_coords)
+
         self.break_region = cfg['break_region']
 
     def localize(self, point):
@@ -93,13 +101,19 @@ class LocationTracker(Component):
         
 
     def step(self, *args):
-        track_segment, cte = self.localize((args[0], args[2]))
+        x, y, z, tele = args
+        track_segment, cte = self.localize((x, z))
+        coord_pred = self.__position_approximation(tele)
+        pred_segment, pred_cte = self.localize(coord_pred)
         # loc = ["{0:0.2f}".format(p) for p in args]
         # seg_str = "{0:0.4f}".format(track_segment)
         # cte_str = "{0:0.4f}".format(cte)
         # print(f'Segment: {seg_str}, CTE: {cte_str}\r', end='')
         indicator = self.__calc_break_indicator(track_segment)
-        return track_segment, cte, indicator
+        cte_heading = self.__calc_heading((x, z))
+        cte_heading_pred = self.__calc_heading(coord_pred)
+
+        return track_segment, cte, indicator, pred_cte, cte_heading, cte_heading_pred
 
     def getName(self):
         return "Location Tracker"
@@ -115,5 +129,24 @@ class LocationTracker(Component):
                     return 1
         return 0
 
-            
+    def __position_approximation(self, tele):
+        # Second order position approximation using velosity and acceleration
 
+        dt = 0.05
+        
+        x = tele.pos_x
+        z = tele.pos_z
+        accel_x = tele.accel_x
+        accel_z = tele.accel_y
+        vel_x = tele.vel_x
+        vel_z = tele.vel_z
+
+        x_pred = x + vel_x * dt + 0.5 * accel_x * dt ** 2
+        z_pred = z + vel_z * dt + 0.5 * accel_z * dt ** 2
+
+        return x_pred, z_pred
+
+    def __calc_heading(self, pt):
+        pt = geom.Point(*pt)
+        proj = self.cte_path.project(pt, normalized=True)
+        return self.cte_headings[int((len(self.cte_headings)-1)*proj )]

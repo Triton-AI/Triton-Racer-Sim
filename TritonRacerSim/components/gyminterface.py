@@ -8,6 +8,7 @@ from io import BytesIO
 import base64
 import numpy as np
 from gym_donkeycar.core.sim_client import SDClient
+from TritonRacerSim.utils.telemetry import TelemetryPack
 
 '''Code Reference:
 https://github.com/tawnkramer/sdsandbox/blob/master/src/test_client.py
@@ -24,17 +25,17 @@ DEFAULT_GYM_CONFIG = {
     'car_name' : 'Trident',
     'font_size' : 50,
 
-    "fov" : 80, 
+    "fov" : 0, 
     "fish_eye_x" : 0.0, 
     "fish_eye_y" : 0.0, 
     "img_w" : 160, 
     "img_h" : 120, 
     "img_d" : 3, 
     "img_enc" : 'JPG', 
-    "offset_x" : 0.0, 
-    "offset_y" : 3, 
-    "offset_z" : 1.0, 
-    "rot_x" : 0.0,
+    "offset_x" : 0, 
+    "offset_y" : 0, 
+    "offset_z" : 0, 
+    "rot_x" : 0,
     # "rot_y": 180,
 
     'scene_name': 'generated_track',
@@ -47,14 +48,14 @@ DEFAULT_GYM_CONFIG = {
 DEFAULT_LIDAR_CONFIG = {
     "degPerSweepInc" : "2", 
     "degAngDown" : "0", 
-    "degAngDelta" : "-1.0", 
+    "degAngDelta" : "0", 
     "numSweepsLevels" : "1", 
     "maxRange" : "50.0", 
-    "noise" : "0.4", 
-    "offset_x" : "0.0", 
-    "offset_y" : "0.5", 
-    "offset_z" : "0.5", 
-    "rot_x" : "0.0" 
+    "noise" : "0", 
+    "offset_x" : "0", 
+    "offset_y" : "0", 
+    "offset_z" : "0", 
+    "rot_x" : "0" 
 }
 
 GYM_DICT={
@@ -98,13 +99,23 @@ class GymInterface(Component, SDClient):
         self.gym_config.update(gym_config['car'])
         self.lidar_config = gym_config['lidar']
         self.gym_config.update(connection_config)
+        self.cam_config = gym_config['camera']
+        self.gym_config.update(self.cam_config)
 
         self.deg_inc = gym_config['lidar']['deg_inc']
         self.max_range = gym_config['lidar']['max_range']
+        self.num_scan_lines = gym_config['lidar']['num_sweeps_levels']
+        self.lidar_offset_y = gym_config['lidar']['offset_y']
+        self.lidar_offset_x = gym_config['lidar']['offset_x']
+        self.lidar_offset_z = gym_config['lidar']['offset_z']
         DEFAULT_LIDAR_CONFIG['degPerSweepInc'] = str(self.deg_inc)
         DEFAULT_LIDAR_CONFIG['maxRange'] = str(self.max_range)
+        DEFAULT_LIDAR_CONFIG['numSweepsLevels'] = str(self.num_scan_lines)
+        DEFAULT_LIDAR_CONFIG['offset_y'] = str(self.lidar_offset_y)
+        DEFAULT_LIDAR_CONFIG['offset_x'] = str(self.lidar_offset_x)
+        DEFAULT_LIDAR_CONFIG['offset_z'] = str(self.lidar_offset_z)
 
-        Component.__init__(self, inputs=['mux/steering', 'mux/throttle', 'mux/breaking', 'usr/reset'], outputs=['cam/img', 'gym/x', 'gym/y', 'gym/z', 'gym/speed', 'gym/cte', 'gym/lidar'], threaded=False)
+        Component.__init__(self, inputs=['mux/steering', 'mux/throttle', 'mux/breaking', 'usr/reset'], outputs=['cam/img', 'gym/telemetry', 'gym/lidar', 'gym/x', 'gym/y', 'gym/z', 'gym/speed', 'gym/cte'], threaded=False)
         SDClient.__init__(self, self.gym_config['host'], self.gym_config['port'], poll_socket_sleep_time=poll_socket_sleep_time)
         self.load_scene(self.gym_config['scene_name'])
         self.send_config()
@@ -112,12 +123,9 @@ class GymInterface(Component, SDClient):
         self.car_loaded = False
         self.latency = self.gym_config['artificial_latency']
 
-        self.pos_x = 0.0
-        self.pos_y = 0.0
-        self.pos_z = 0.0
-        self.speed = 0.0
-        self.cte = 0.0
+        self.tele = TelemetryPack()
         self.lidar = None
+        self.hsv=[0, 1, 1]
     
     def step(self, *args):
         steering = args[0]
@@ -129,7 +137,7 @@ class GymInterface(Component, SDClient):
         if reset:
             self.reset_car()
 
-        return self.last_image, self.pos_x, self.pos_y, self.pos_z, self.speed, self.cte, self.lidar
+        return self.last_image, self.tele, self.lidar, self.tele.pos_x, self.tele.pos_y, self.tele.pos_z, self.tele.speed, self.tele.cte
 
     def onStart(self):
         print(f'CAUTION: Confirm your artificial latency setting: {self.latency}ms.')
@@ -140,6 +148,13 @@ class GymInterface(Component, SDClient):
     def getName(self):
         return 'Gym Interface'
 
+    def __try_get(self, dict, key, type_required):
+        try:
+            val = dict.get(key)
+            return type_required(val)
+        except:
+            return None
+
     def on_msg_recv(self, json_packet):
         if json_packet['msg_type'] == "need_car_config":
             self.send_config()
@@ -149,15 +164,35 @@ class GymInterface(Component, SDClient):
             self.car_loaded = True
         
         elif json_packet['msg_type'] == "telemetry":
+            print(json_packet)
             time.sleep(self.gym_config['artificial_latency'] / 1000.0) # 1000 for ms -> s
             imgString = json_packet["image"]
             image = Image.open(BytesIO(base64.b64decode(imgString)))
             self.last_image = np.asarray(image, dtype=np.uint8)
-            self.pos_x = float(json_packet['pos_x'])
-            self.pos_y = float(json_packet['pos_y'])
-            self.pos_z = float(json_packet['pos_z'])
-            self.speed = float(json_packet['speed'])
-            self.cte = float(json_packet['cte'])
+
+            # Telemetry, New since 21.04.05
+            to_extract = ['steering_angle', 'throttle', 'speed', 'pos_x', 
+                            'pos_y', 'pos_z', 'hit', 'time', 
+                            'accel_x', 'accel_y', 'accel_z', 
+                            'gyro_x', 'gyro_y', 'gyro_z', 'gyro_w', 
+                            'pitch', 'yaw', 'roll', 
+                            'cte', 'activeNode', 'totalNodes', 
+                            'vel_x', 'vel_y', 'vel_z', 'on_road', 
+                            'progress_on_shortest_path']
+            types = [float, float, float, float,
+                    float, float, int, float,
+                    float, float, float, 
+                    float, float, float, float,
+                    float, float, float,
+                    float, int, int,
+                    float, float, float, int,
+                    float]
+            vals = []
+
+            for i in range(len(to_extract)):
+                vals.append(self.__try_get(json_packet, to_extract[i], types[i]))
+
+            self.tele = TelemetryPack(*tuple(vals))
 
             if "lidar" in json_packet:
                 self.lidar = json_packet["lidar"]
@@ -177,7 +212,7 @@ class GymInterface(Component, SDClient):
             'guid': self.gym_config['guid'] }
         self.send_now(json.dumps(msg))
 
-        time.sleep(1.0)
+        time.sleep(2.0)
 
         print('Sending car config')
         # Car config
@@ -191,9 +226,10 @@ class GymInterface(Component, SDClient):
         self.send_now(json.dumps(msg))
 
         #this sleep gives the car time to spawn. Once it's spawned, it's ready for the camera config.
-        time.sleep(1.0)
-        '''
-        # Camera config     
+        time.sleep(2.0)
+        
+        # Camera config
+        print('Sending camera config')     
         msg = { "msg_type" : "cam_config", 
         "fov" : self.gym_config['fov'].__str__(), 
         "fish_eye_x" : self.gym_config['fish_eye_x'].__str__(), 
@@ -208,7 +244,7 @@ class GymInterface(Component, SDClient):
         "rot_x" : self.gym_config['rot_x'].__str__() 
         }
         self.send_now(json.dumps(msg))
-        '''
+        
         print (f"Gym Interface: Camera resolution ({self.gym_config['img_w']}, {self.gym_config['img_h']}).")
 
         if self.lidar_config['enabled']:
@@ -227,6 +263,20 @@ class GymInterface(Component, SDClient):
                 "brake" : breaking.__str__() }
         self.send(json.dumps(msg))
 
+        ''' Would you like some RGB?
+        import colorsys
+        self.hsv[0] += 0.005
+        if self.hsv[0] > 1 : self.hsv[0] = 0
+        rgb = colorsys.hsv_to_rgb(*(tuple(self.hsv)))
+        msg = { "msg_type" : "car_config",  
+        "body_r" : int(rgb[0] * 255).__str__(), 
+        "body_g" : int(rgb[1] * 255).__str__(), 
+        "body_b" : int(rgb[2] * 255).__str__(),
+        "body_style" : self.gym_config['body_style'], 
+        "car_name" : self.gym_config['car_name'], 
+        "font_size" : self.gym_config['font_size'].__str__() }
+        self.send_now(json.dumps(msg))
+        '''
         #this sleep lets the SDClient thread poll our message and send it out.
         # time.sleep(self.poll_socket_sleep_sec)
 

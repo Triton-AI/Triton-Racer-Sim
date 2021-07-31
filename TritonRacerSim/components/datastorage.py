@@ -11,7 +11,7 @@ import queue
 
 class DataStorage(Component):
     def __init__(self, to_store=['cam/img', 'mux/throttle', 'mux/steering', 'mux/break', 'gym/speed', 
-        'loc/segment', 'gym/x', 'gym/y', 'gym/z', 'gym/cte', 'loc/cte', 'loc/break_indicator'], 
+        'loc/segment', 'gym/x', 'gym/y', 'gym/z', 'gym/cte', 'loc/cte', 'loc/break_indicator', 'gym/telemetry'], 
         storage_path = None):
         super().__init__(inputs=to_store, outputs=['storage/record_count'], threaded=False)
         self.step_inputs += ['usr/del_record', 'usr/toggle_record']
@@ -32,8 +32,8 @@ class DataStorage(Component):
         # store records
         elif args[-1]:          
             record = {self.step_inputs[i]: args[i] for i in range(len(self.step_inputs))}
-            #if record['cam/img'] is not None:
-            #    print(args[0].shape)
+            if record['gym/telemetry'] is not None:
+                record['gym/telemetry'] = record['gym/telemetry'].__dict__
             self.records_temp.put(record)
             self.count += 1
             if self.count > self.max_count:
