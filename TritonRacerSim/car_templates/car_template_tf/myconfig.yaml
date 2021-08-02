@@ -1,0 +1,234 @@
+# Configuation file for Triton AI Racer
+
+I_am_on_simulator: false # [IMPORTANT] Turn this on on simulator. Turn this off on real cars.
+loop_hz: 20 # Frequency that TritonAIRacer runs at. 20 is default. You can make it higher on small models or powerful jetsons. Make it smaller when using ESP32 or running big models.
+verbose: [] # A list of variables to print out for debugging. e.g. ['ai/throttle', 'ai/steering']
+# ***************************
+# !!! INDENTATION MATTERS !!!
+# !!! INDENTATION MATTERS !!!
+# !!! INDENTATION MATTERS !!!
+# ***************************
+joystick: # Joystick
+  type: 'ps4' # [ ps4 | xbox | g28 | steam | switch | custom ] Wired joysticks recommended.
+  use_bluetooth: false # For ps4 controller: is it connected via bluetooth or wire?
+  max_throttle: 1.0 # throttle limiter (0, 1]
+  max_steering: 1.0 # steering limiter (0, 1]
+  custom_mapping_file: "custom_joystick.json" # Only when using custom joystick.
+  default_drive_mode: 'human' # [ human | ai_steering | ai ] Who should take control of the car at launch?  
+
+ai_model: # Training
+  backbone: 'keras' # keras | pytorch
+  model_type: 'cnn_2d' # cnn_2d | cnn_2d_speed_as_feature | cnn_2d_speed_control | cnn_2d_full_house | pid | cnn_2d_speed_control_break_indication
+  early_stop: true # Early stop when training hasn't made any progress within the patience
+  early_stop_patience: 5
+  max_epoch: 100 # Max epoch to train
+  batch_size: 128 # Lower it to save GPU resources, or increase it to experdite training.
+  from_donkey: false # Are you deploying a model from donkeycar?
+  embedding_size: 300 # Embedding size for LSTM model
+  learning_rate: 0.001
+  momentum: 0.0
+  weight_decay: 0.0
+  use_tensorrt: false
+  shuffle: true
+  num_workers: 0 
+  optimizer: "adam" # adam | sgd
+
+speed_control: # Speed-based control params (for speed control and full house models)
+  threshold: 1.1 # Allow the model to overspeed. 1.1 means 10% above predicted speed.
+  algorithm: pid # sigmoid | pid
+  reverse: true # Apply reverse throttle when overspeed, e.g. -0.4.
+  reverse_multiplier: 1.0 # How hard the car should reverse
+  break: false # [WARRNING] OVERWRITES REVERSE. Apply break when overspeed, e.g. 0.3. Break will OVERRIDE any throttle value.
+  break_multiplier: 1.0 # How hard the car should break
+  pid:
+    kp: 1.0
+    ki: 0.1
+    kd: 0.05
+  train_speed_mean: 10 # Normalization of speed data
+  train_speed_offset: -1 # Normalization of speed data
+  categorical_speed_control:
+    intervals: [0, 15000, 30000] # Max value of each bin. e.g. [0, 15000, 30000] means bin 1 is between 0 and 15000, and bin 2 is between [15000, 30000]
+
+
+simulator: # DonkeyGym simulator settings
+  car:
+    car_name: 'TritonRacer'
+    font_size: 50
+    racer_name: 'Triton AI'
+    bio: 'Something'
+    country: 'US'
+    body_style: 'car01'
+    body_rgb: [24, 43, 73]
+    guid: 'some_random_string'
+
+  default_connection: 'local' # Which is the default connection profile? "local" or "remote"?
+  # default_connection: 'remote'
+
+  local_connection:
+    scene_name: 'generated_track' # roboracingleague_1 | generated_track | generated_road | warehouse | sparkfun_avc | waveshare
+    host: '127.0.0.1' # Use "127.0.0.1" for simulator running on local host.
+    port: 9091
+    artificial_latency: 0 # Ping the remote simulator whose latency you would like to match with, and put the ping in millisecond here.
+
+  remote_connection:
+    scene_name: 'generated_track'
+    host: '127.0.0.1' # Use the actual host name for remote simulator.
+    port: 9091
+    artificial_latency: 0 # Besides the ping to the remote simulator, how many MORE delay would you like to add?
+
+  lidar:
+    enabled: false
+    deg_inc: 2 # Degree increment between each ray of the lidar
+    max_range: 20.0 # Max range of the lidar laser
+    num_sweeps_levels: 1
+    offset_x: 0.0
+    offset_y: 0.0
+    offset_z: 0.0
+
+  camera:
+    img_w: 640
+    img_h: 360
+
+3d_detection:
+  enabled: true
+  left_data_file: 'file.json'
+  right_data_file: 'file.json'
+  seg_data_file: 'warehouse_center.json'
+  cte_data_file: 'warehouse_center.json'
+
+simulator_autolaunch: # Let the program launches the simulator software for you.
+  enabled: false
+  donkey_sim_full_path: 'remote' # Put "remote" will bypass this option. 
+
+cam: # Camera setting for both real and simulator
+  img_h: 120 # REAL OR SIMULATOR [Open-CV required if different than native]: Height after resizing and stored, excluding cropping in pre-processing
+  img_w: 160 # REAL OR SIMULATOR [Open-CV required if different than native]: Width after resizing and stored, excluding cropping in pre-processing
+  type: 'WEBCAM' # REAL camera: WEBCAM | WEBCAM_OPENCV | MOCK Put mock if the camera is not actually installed
+  native_resolution: [120, 160] # REAL OR SIMULATOR camera: Resolution of opening the camera, check with manufacturer for resolution support.
+  img_format: 'RGB' # REAL camera: RGB | YUV | HSV | MJPEG
+  idx: 0 # REAL camera: Index of camera in the system
+
+stream_cam_feed:
+    enabled: false
+    port: 9094
+    image_topic: 'cam/img' # 'cam/img' | 'cam/original_img' | 'cam/processed_img'
+
+electronics: # On-board Electronics for REAL cars
+  sub_board_type: 'ESP32' # PCA9685 | TEENSY | ESP32 | VESC # Who is responsible for sending PWM signals to the motor and servo?
+  calibration: # PWM calibration values 
+    max_forward_pwm: 420
+    zero_throttle_pwm: 390
+    max_reverse_pwm: 350
+    max_left_pwm: 300
+    max_right_pwm: 440
+    neutral_steering_pwm: 370 
+  PCA9685:
+    PCA9685_esc_channel: 1 # On PCA9685, which channel is the electronic speed controller (ESC) connected to?
+    PCA9685_servo_channel: 2 # On PCA9685, which channel is the servo connected to?
+
+  teensy:
+    port: '/dev/ttyACM0'
+    baudrate: 115200
+    watchdog_trigger_time: 100 # ms before the watchdog kicks in and shut down the system
+    poll_interval: 25 # ms between each polling
+
+  esp32:
+    ip: '192.168.4.1'
+    port: 9093
+
+  vesc:
+    port: '/dev/ttyACM0'
+    baudrate: 115200
+    has_sensor: false # Does your motor has built-in hall effect sensor? (encoder cable from back of motor to VESC)
+    enable_heartbeat: true # Would you like to enable heartbeat as a watchdog feature? (default to true)
+    ai_controls_speed: true # Is the AI model controlling the speed (RPM) or throttle (current)?
+    max_forward_rpm: 10000 # motor RPM limit
+    max_reverse_rpm: -5000 # motor RPM limit
+    max_left_angle: 0.1 # Ranging [0, 1] per PyVESC API
+    max_right_angle: 0.9 # Ranging [0, 1] per PyVESC API
+    neutral_angle: 0.5 # Ranging [0, 1] per PyVESC API
+    max_forward_current: 50 # mA. forward throttle
+    max_reverse_current: -50 # mA. reverse throttle
+    inverted: false
+    break_as_deadman_switch: false # Use the breaking axis as a deadman switch ( pull to above 0.8 to activate ai)
+
+ai_boost: # AI boost
+  launch_throttle_lock: # Lock throttle when switching from ai-steering to full-ai mode
+    enabled: false
+    value: 1.0 # [-1.0, 1.0]
+    duration: 5
+
+  launch_steering_lock: # Lock steering when switching from ai-steering to full-ai mode
+    enabled: false
+    value: 0.0 # [-1.0, 1.0]. -1.0 is full left.
+    duration: 3
+
+  smooth_steering: # Consider all AI steerings above the threshold a full steering (1.0 or -1.0)
+    enabled: false
+    threshold: 0.95
+
+  thr_ctl_multiplier: 1.0 # Basic multiplier for throttle-based AI models, such as those from donkeycar
+
+location_tracker: # Give the relative location on the track as a segment number [0, 1] (% of track completed), and a cross-track error.
+  enabled: false
+  seg_data_file: 'warehouse_center.json'
+  cte_data_file: 'warehouse_center.json'
+  break_region: # Region of segment to signal the break indicator. Used in fullhouse model.
+    - null # Comment this out in actual use
+    - [0.1, 0.2]
+
+drive_assist: # Driver Assistance
+  enabled: false # Drive assist for simulator. Not recommanded for real cars.
+  limit_mode: 'steering' # speed | steering. 'speed' means limiting speed to match steering, vise versa.
+  limit_k: 5 # k as in speed = k / steering. Speed and steering are inversly proportional
+
+
+img_preprocessing: # Preprocess image from either real camera or simulator
+  enabled: false # Enable image preprocessing ? 
+  preview_enabled: false # Display an OpenCV imshow window to monitor the preprocessing. [WARNING] OpenCV required. DO NOT TURN ON when driving on a SSH session.
+  keep_original: true # Store the original image data under data/records_x_original/
+  contrast_enhancement:
+    enabled: false
+    ratio: 1.0 # Enhance contrast, especially on low contrast tracks. Set to 1.0 to disable.
+    offset: 125 # Ranging [0,255]. Pixels above this value will be boosted, while below this will be decreased.
+    channel_boost: [0, 0, 0] # Boost the value of a single chanel (RGB) for color correction
+  
+  dynamic_brightness:
+    enabled: false # Automatically adjust the brightness of the image
+    baseline: 550 # Ranging [0, 3*255]. Set the target average brightness for dynamic brightness adjustment.
+  
+  ai_upscaling:
+    enabled: false
+    scale: 2 # 2 or 4
+    target_resolution: [240, 320]
+
+  crop: [0, 0, 0, 0] # Top, bottom, left, right; number of pixels to crop.
+
+  color_filter:
+    enabled: false # Filtering out the interested colors. Checkout Triton AI Color Filter Tutorial.
+    # [WARNING] Upper and lower bounds must have the same number of 3-values. Please also mind the conversion from conventional to OpenCV HSV scale.
+    hsv_upper_bounds: [[0, 0, 130],[25, 180, 155]] # OpenCV HSV upper bounds of each color detection. In this case white and yellow.
+    hsv_lower_bounds: [[180, 64, 255], [43, 255, 255]] # OpenCV HSV lower bounds of each color detection. In this case white and yellow.
+    destination_channels: [0, 1] # Which channel(s) to put the filtered layers? 0 | 1 | 2 for RGB image. Must match the number of hsv filters above.)
+    display_method: 'overlay' # overlay | overwrite
+  
+  edge_detection:
+    enabled: false # Apply a canny filter for edge detection
+    threshold_a: 60 # Threshold used in OpenCV canny filter
+    threshold_b: 100
+    destination_channel: 2 # Which channel to put the filtered layer? 0 | 1 | 2 for RGB image
+
+  perspective_transform:
+    enabled: false
+    points: [0, 0, 0, 0]
+
+pid_pilot:
+  steering:
+    kp: 1.0
+    ki: 0.1
+    kd: 0.2
+  speed:
+    kp: 1.0
+    ki: 0.1
+    kd: 0.05
+  speed_limit_k: 5 # k as in speed = k / steering. Speed and steering are inversly proportional

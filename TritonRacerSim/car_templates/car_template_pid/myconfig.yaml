@@ -17,38 +17,18 @@ joystick: # Joystick
   default_drive_mode: 'human' # [ human | ai_steering | ai ] Who should take control of the car at launch?  
 
 ai_model: # Training
-  backbone: 'keras' # keras | pytorch
-  model_type: 'cnn_2d' # cnn_2d | cnn_2d_speed_as_feature | cnn_2d_speed_control | cnn_2d_full_house | pid | cnn_2d_speed_control_break_indication
-  early_stop: true # Early stop when training hasn't made any progress within the patience
-  early_stop_patience: 5
-  max_epoch: 100 # Max epoch to train
-  batch_size: 128 # Lower it to save GPU resources, or increase it to experdite training.
-  from_donkey: false # Are you deploying a model from donkeycar?
-  embedding_size: 300 # Embedding size for LSTM model
-  learning_rate: 0.001
-  momentum: 0.0
-  weight_decay: 0.0
-  use_tensorrt: false
-  shuffle: true
-  num_workers: 0 
-  optimizer: "adam" # adam | sgd
+  model_type: 'cnn_2d' # pid | waypoint_follower
 
-speed_control: # Speed-based control params (for speed control and full house models)
-  threshold: 1.1 # Allow the model to overspeed. 1.1 means 10% above predicted speed.
-  algorithm: pid # sigmoid | pid
-  reverse: true # Apply reverse throttle when overspeed, e.g. -0.4.
-  reverse_multiplier: 1.0 # How hard the car should reverse
-  break: false # [WARRNING] OVERWRITES REVERSE. Apply break when overspeed, e.g. 0.3. Break will OVERRIDE any throttle value.
-  break_multiplier: 1.0 # How hard the car should break
-  pid:
+pid_pilot:
+  steering:
+    kp: 1.0
+    ki: 0.1
+    kd: 0.2
+  speed:
     kp: 1.0
     ki: 0.1
     kd: 0.05
-  train_speed_mean: 10 # Normalization of speed data
-  train_speed_offset: -1 # Normalization of speed data
-  categorical_speed_control:
-    intervals: [0, 15000, 30000] # Max value of each bin. e.g. [0, 15000, 30000] means bin 1 is between 0 and 15000, and bin 2 is between [15000, 30000]
-
+  speed_limit_k: 5 # k as in speed = k / steering. Speed and steering are inversly proportional
 
 simulator: # DonkeyGym simulator settings
   car:
@@ -81,6 +61,9 @@ simulator: # DonkeyGym simulator settings
     deg_inc: 2 # Degree increment between each ray of the lidar
     max_range: 20.0 # Max range of the lidar laser
     num_sweeps_levels: 1
+    offset_x: 0.0
+    offset_y: 0.0
+    offset_z: 0.0
 
   camera:
     img_w: 640
@@ -168,6 +151,8 @@ ai_boost: # AI boost
 
 location_tracker: # Give the relative location on the track as a segment number [0, 1] (% of track completed), and a cross-track error.
   enabled: false
+  waypoint_data_file: 'warehouse_center.json'
+  n_look_ahead: 10
   seg_data_file: 'warehouse_center.json'
   cte_data_file: 'warehouse_center.json'
   break_region: # Region of segment to signal the break indicator. Used in fullhouse model.
@@ -218,14 +203,3 @@ img_preprocessing: # Preprocess image from either real camera or simulator
   perspective_transform:
     enabled: false
     points: [0, 0, 0, 0]
-
-pid_pilot:
-  steering:
-    kp: 1.0
-    ki: 0.1
-    kd: 0.2
-  speed:
-    kp: 1.0
-    ki: 0.1
-    kd: 0.05
-  speed_limit_k: 5 # k as in speed = k / steering. Speed and steering are inversly proportional

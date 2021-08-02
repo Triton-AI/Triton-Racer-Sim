@@ -28,7 +28,7 @@ class TrackDataProcessor:
                 f.close()
 
                 # point = [data['gym/x'], data['gym/y'], data['gym/z']]
-                point = {'gym/x': data['gym/x'], 'gym/z': data['gym/z'], 'yaw': data['gym/telemetry']['yaw']}
+                point = {'gym/x': data['gym/x'], 'gym/z': data['gym/z'], 'yaw': data['gym/telemetry']['yaw'], 'speed': data['gym/telemetry']['speed']}
                 self.line.append(point)
 
                 i += 1

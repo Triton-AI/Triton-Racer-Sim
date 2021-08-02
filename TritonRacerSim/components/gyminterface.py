@@ -164,7 +164,7 @@ class GymInterface(Component, SDClient):
             self.car_loaded = True
         
         elif json_packet['msg_type'] == "telemetry":
-            print(json_packet)
+            # print(json_packet)
             time.sleep(self.gym_config['artificial_latency'] / 1000.0) # 1000 for ms -> s
             imgString = json_packet["image"]
             image = Image.open(BytesIO(base64.b64decode(imgString)))
